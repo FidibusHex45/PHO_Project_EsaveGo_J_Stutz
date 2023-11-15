@@ -1,0 +1,27 @@
+{
+  "manual": {
+    "imageFormat": 36,
+    "colorMode": 1,
+    "exposureTime": 20.0,
+    "shutterMode": 2,
+    "pixelCock": 237,
+    "fps": 30,
+    "offset": 0,
+    "gain": 5,
+    "gamma": 160,
+    "binning": 0,
+    "enableRoi": 1,
+    "roi": {
+      "x": 780,
+      "y": 0,
+      "width": 992,
+      "height": 2000
+    }
+  },
+  "auto": {
+    "gain": 0,
+    "shutter": 0,
+    "whiteBalance": 0,
+    "framerate": 0
+  }
+}
