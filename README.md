@@ -1,7 +1,10 @@
-# Esave Go
+# Semesterprojekt esave Go
 
 ## CameraSettings
 ### Image Formats
+The Image formats for the IDS camera get basicly interpreted as predefinded areas of interest (AOI).
+Hereinafter is a list of souported formats for the this [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html):
+
 | Format ID | Resolution                   | Name         |
 | --------- | ---------------------------- | ------------ |
 | 5         | 2048 x 1536                  | 3M           |
@@ -20,35 +23,106 @@
 | 36        | Sensor maximum (2456 x 2054) |              |
 | 40        | 2048 x 2048                  | 4M           |
 
-### Color modes
-| ID 	| ID name               	| Description                                                                  	|
-|----	|-----------------------	|------------------------------------------------------------------------------	|
-| 28 	| IS_CM_MONO16          	| Grayscale (16), for monochrome and color cameras, LUT/gamma active           	|
-| 26 	| IS_CM_MONO12          	| Grayscale (12), for monochrome and color cameras, LUT/gamma active           	|
-| 34 	| IS_CM_MONO10          	| Grayscale (10), for monochrome and color cameras, LUT/gamma active           	|
-| 6  	| IS_CM_MONO8           	| Grayscale (8), for monochrome and color cameras, LUT/gamma active            	|
-| 29 	| IS_CM_SENSOR_RAW16    	| Raw sensor data (16), for monochrome and color cameras, LUT/gamma not active 	|
-| 27 	| IS_CM_SENSOR_RAW12    	| Raw sensor data (12), for monochrome and color cameras, LUT/gamma not active 	|
-| 33 	| IS_CM_SENSOR_RAW10    	| Raw sensor data (10), for monochrome and color cameras, LUT/gamma not active 	|
-| 11 	| IS_CM_SENSOR_RAW8     	| Raw sensor data (8), for monochrome and color cameras, LUT/gamma not active  	|
-| 30 	| IS_CM_BGR12_UNPACKED  	| Unpacked BGR (12 12 12), for monochrome and color cameras, LUT/gamma active  	|
-| 35 	| IS_CM_BGR10_UNPACKED  	| Unpacked BGR (10 10 10), for monochrome and color cameras, LUT/gamma active  	|
-| 25 	| IS_CM_BGR10_PACKED    	| BGR (10 10 10), for monochrome and color cameras, LUT/gamma active           	|
-| 1  	| IS_CM_BGR8_PACKED     	| BGR (8 8 8), for monochrome and color cameras, LUT/gamma active              	|
-| 31 	| IS_CM_BGRA12_UNPACKED 	| Unpacked BGR (12 12 12), for monochrome and color cameras, LUT/gamma active  	|
-| 0  	| IS_CM_BGRA8_PACKED    	| BGR (8 8 8), for monochrome and color cameras, LUT/gamma active              	|
-| 24 	| IS_CM_BGRY8_PACKED    	| BGRY (8 8 8), for monochrome and color cameras, LUT/gamma active             	|
-| 2  	| IS_CM_BGR565_PACKED   	| BGR (5 6 5), for monochrome and color cameras, LUT/gamma active              	|
-| 3  	| IS_CM_BGR5_PACKED     	| BGR (5 5 5), for monochrome and color cameras, LUT/gamma active              	|
-| 12 	| IS_CM_UYVY_PACKED     	| YUV 4:2:2 (8 8), for monochrome and color cameras, LUT/gamma active          	|
-| 23 	| IS_CM_CBYCRY_PACKED   	| YCbCr 4:2:2 (8 8), for monochrome and color cameras, LUT/gamma active        	|
+The image format can be selected by inserting the corresponding format ID in the [cameraSettings.json](./prop/cameraSettings.json)-file e.g.
+~~~json
+"imageFormat": 20
+~~~
 
-### Valid pixelclock params
+### Color modes
+The [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html) offers plenty of different color modes. These are listed in the table underneath.
+
+| ID 	| ID name               	| Description             |
+|----	|-----------------------	|-------------------------|
+| 28 	| IS_CM_MONO16          	| Grayscale (16)          |
+| 26 	| IS_CM_MONO12          	| Grayscale (12)          |
+| 34 	| IS_CM_MONO10          	| Grayscale (10)          |
+| 6  	| IS_CM_MONO8           	| Grayscale (8)       	  |
+| 29 	| IS_CM_SENSOR_RAW16    	| Raw sensor data (16) 	  |
+| 27 	| IS_CM_SENSOR_RAW12    	| Raw sensor data (12) 	  |
+| 33 	| IS_CM_SENSOR_RAW10    	| Raw sensor data (10) 	  |
+| 11 	| IS_CM_SENSOR_RAW8     	| Raw sensor data (8)  	  |
+| 30 	| IS_CM_BGR12_UNPACKED  	| Unpacked BGR (12 12 12) |
+| 35 	| IS_CM_BGR10_UNPACKED  	| Unpacked BGR (10 10 10) |
+| 25 	| IS_CM_BGR10_PACKED    	| BGR (10 10 10)          |
+| 1  	| IS_CM_BGR8_PACKED     	| BGR (8 8 8)             |
+| 31 	| IS_CM_BGRA12_UNPACKED 	| Unpacked BGR (12 12 12) |
+| 0  	| IS_CM_BGRA8_PACKED    	| BGR (8 8 8)             |
+| 24 	| IS_CM_BGRY8_PACKED    	| BGRY (8 8 8)            |
+| 2  	| IS_CM_BGR565_PACKED   	| BGR (5 6 5)             |
+| 3  	| IS_CM_BGR5_PACKED     	| BGR (5 5 5)         	  |
+
+`Note:`
+Please be aware, that not all colorformats are soupported by the openCV [cv::Mat](https://docs.opencv.org/4.x/d3/d63/classcv_1_1Mat.html) class. Valid colorformats for cv::Mat can be looked up [here](https://gist.github.com/yangcha/38f2fa630e223a8546f9b48ebbb3e61a). Formats that will work are therefore:
+* IS_CM_MONO8
+* IS_CM_MONO16
+* IS_CM_SENSOR_RAW8
+* IS_CM_SENSOR_RAW16
+
+Since the [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html) is greyscale only, all colorformats will not work with this setting. We recommend using the `IS_CM_MONO8` color mode, since it's the least computationlly intensive mode e.g.
+~~~json
+"colorMode": 6
+~~~
+
+### Exposure time / integration time
+The exposure time can be adjusted freely in the range from 0.02 - 10000ms e.g.
+~~~json
+"exposureTime": 15.0
+~~~
+
+### Shutter mode
+The [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html) offers two shuttermodes: rolling and global shutter.
+The shutter mode can also be selected in the [cameraSettings.json](./prop/cameraSettings.json)-file.
+* rolling shutter by setting the `shutterMode` to `1`
+* global shutter by setting the `shutterMode` to `2`
+e.g.
+~~~json
+"shutterMode": 2
+~~~
+
+### Pixelclock 
+The pixelclick can only be set to specific values, these values are shown below:
 * 118 (MHz)
 * 237 (MHz)
 * 474 (MHz)
+~~~json
+"pixelCock": 237
+~~~
 
-### Valid Roi's
+### Framerate
+The [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html) can handle framerates in `freerun` mode from 1 up to 52fps. e.g.
+~~~json
+"fps": 30
+~~~
+
+### Offset
+The offset or blacklevel is adustable in the range of 0-255. Under normal conditions we recommend setting the `offset` to `0`. e.g.
+~~~json
+"offset": 0
+~~~
+
+### Gain
+The gain can be adjusted in the range from 1 to 4. e.g.
+~~~json
+"gain": 3
+~~~
+
+### Gamma
+
+
+
+### Binning
+
+
+### Region of interest (AOI)
+The region of interest (uEye notation: AOI - area of interest) can activated/deactivated by setting the `enableRoi` [cameraSettings.json](./prop/cameraSettings.json)-file either to `0` or to `1`:
+~~~json
+"enableRoi": 1
+~~~
+or
+~~~json
+"enableRoi": 0
+~~~
+The boundary conditions for the AOI are listed in the table below:
 |                          |            |
 | ------------------------ | ---------- |
 | min roi width            | 256 (pxl)  |
@@ -61,3 +135,18 @@
 |                          |            |
 | position grid horizontal | 4 (pxl)    |
 | position grid vertical   | 2 (pxl)    |
+
+Example:
+~~~json
+"enableRoi": 1,
+    "roi": {
+      "x": 100,
+      "y": 50,
+      "width": 512,
+      "height": 1024
+    }
+~~~
+
+
+
+
