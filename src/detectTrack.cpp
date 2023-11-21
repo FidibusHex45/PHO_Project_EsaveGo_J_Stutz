@@ -87,6 +87,7 @@ void save2csv(std::vector<cv::Point> dataPoints) {
 }
 
 std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
+    bool rotrect = true;
     cv::Mat demoVid = images.at(0);
 
     cv::Mat diffFrame;
@@ -122,24 +123,43 @@ std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
         cv::findNonZero(binaryDiffImg, nonZeros);
 
         if (nonZeros.size() != 0) {
-            rotBox = cv::minAreaRect(nonZeros);
+            if (rotrect) {
+                rotBox = cv::minAreaRect(nonZeros);
+                if (rotRectArea(rotBox) > 500 && rotRectArea(rotBox) < 25000) {
+                    drawRotRect(displayImg, rotBox);
+                    cv::Point center = rotBox.center;
+                    trackPoints.push_back(center);
 
-            if (rotRectArea(rotBox) > 500 && rotRectArea(rotBox) < 50000) {
-                drawRotRect(displayImg, rotBox);
-                cv::Point center = rotBox.center;
-                trackPoints.push_back(center);
+                    // Demo Video
+                    // ***********************************************************
+                    // drawRotRect(demoVid, rotBox);
+                    // ***********************************************************
 
-                // Demo Video
-                // drawRotRect(demoVid, rotBox);
-                cv::rectangle(demoVid, boundingBox, cv::Scalar(255), 3);
+                    std::cout << "Distance: " << cv::norm(trackPoints.at(0) - center) << std::endl;
+                }
+            }
+            if (!rotrect) {
+                if (boundingBox.area() > 500 && boundingBox.area() < 50000) {
+                    cv::rectangle(displayImg, boundingBox, cv::Scalar(255), 3);
+                    cv::Point center = (boundingBox.br() + boundingBox.tl()) * 0.5;
+                    trackPoints.push_back(center);
 
-                // std::cout << "Distance: " << cv::norm(trackPoints.at(0) - center) << std::endl;
+                    // Demo Video
+                    // ***********************************************************
+                    // cv::rectangle(demoVid, boundingBox, cv::Scalar(255), 3);
+                    // ***********************************************************
+
+                    std::cout << "Distance: " << cv::norm(trackPoints.at(0) - center) << std::endl;
+                }
             }
         }
 
-        cv::Mat color;
-        cv::cvtColor(demoVid, color, cv::COLOR_GRAY2BGR);
-        writer.write(color);
+        // Demo Video
+        // ***********************************************************
+        // cv::Mat color;
+        // cv::cvtColor(demoVid, color, cv::COLOR_GRAY2BGR);
+        // writer.write(color);
+        // ***********************************************************
 
         cv::imshow(windowName, images.at(i));
 
@@ -158,7 +178,7 @@ std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
 }
 
 cv::Mat detectTrack(HIDS &hcam, Camera &cam, SerialSTM32 &ser, std::string configPath) {
-    const int nSamples = 200;
+    const int nSamples = 300;
 
     std::string saveImgPath = "../../out/Mask.png";
     std::string windowName;
