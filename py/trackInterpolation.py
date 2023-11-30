@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.neighbors import KDTree
 from scipy.interpolate import splprep, splev
+from sklearn import linear_model
 
 
 def kdTreeSKlearn(points):
@@ -11,7 +12,8 @@ def kdTreeSKlearn(points):
 
 
 points = np.loadtxt(
-    "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/prop/dataPoints.csv",
+    "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/prop/dataPoints8.csv",
+    # "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/prop/dataPoints8.csv",
     delimiter=",",
     dtype=int,
 )
@@ -47,7 +49,6 @@ orderedPoints = pointsUnique[sequence[: sequence.shape[0] - 2]]
 max_x = np.max(orderedPoints[:, 0])
 max_y = np.max(orderedPoints[:, 1])
 orderedPoints = orderedPoints / np.array([max_x, max_y])
-
 
 k = 3
 # The user can use s to control the trade-off between
@@ -135,24 +136,19 @@ directions = directions.reshape((int(directions.shape[0] / 2), 2))
 
 # spline correction
 ratio = 1.8
+increment = 0.5
 
 startDir = np.array([-np.sqrt(2), -np.sqrt(2)])
 halfDir = np.array([-np.sqrt(2), +np.sqrt(2)])
 
-increment = 0.5
-
 for i in range(directions.shape[0] - 1):
     diffdir = 0
-
     if i == 0:
         diffdir = np.linalg.norm(startDir + directions[i])
-
     elif i == int(directions.shape[0] / ratio) + 1:
         diffdir = np.linalg.norm(halfDir + directions[i])
-
     else:
         diffdir = np.linalg.norm(directions[i - 1] + directions[i])
-
     if diffdir < 1:
         while diffdir < 1.5:
             splinePoints[i] += directions[i] * increment
@@ -160,15 +156,167 @@ for i in range(directions.shape[0] - 1):
                 splinePoints[i - 1], splinePoints[i], splinePoints[i + 1]
             )
             diffdir = np.linalg.norm(directions[i - 1] + directions[i])
-
         angles[i] = 180 - cosLaw(
             dist2Points(splinePoints[i], splinePoints[i + 1]),
             dist2Points(splinePoints[i - 1], splinePoints[i]),
             dist2Points(splinePoints[i - 1], splinePoints[i + 1]),
         )
-    print(f"Angel {i}: {angles[i]}")
 
 
+# Ransac Plausch
+x_data = np.linspace(np.min(orderedPoints[:, 0]), np.max(orderedPoints[:, 0]), 101)
+
+
+def ransac_fit_line(x, y, threshold=10, samples=2, trials=500):
+    best_inliers = np.zeros(x.shape[0], dtype=bool)
+    for i in range(trials):
+        indices = np.random.choice(x.shape[0], samples, replace=False)
+        fit = np.polyfit(x[indices], y[indices], 1)
+        residuals = np.abs(x * fit[0] + fit[1] - y)
+        inliers = residuals <= threshold
+        if np.sum(inliers) > np.sum(best_inliers):
+            best_inliers = inliers
+    best_fit = np.polyfit(x[best_inliers], y[best_inliers], 1)
+    return best_fit, best_inliers
+
+
+def ransac_fit_line_alt(x, y, threshold=10, samples=10):
+    best_inliers = np.zeros(x.shape[0], dtype=bool)
+    for i in range(x.shape[0] - 1):
+        indices = np.arange(i, i + samples) % (x.shape[0])
+        fit = np.polyfit(x[indices], y[indices], 1)
+        residuals = np.abs(x * fit[0] + fit[1] - y)
+        inliers = residuals <= threshold
+        if np.sum(inliers) > np.sum(best_inliers):
+            best_inliers = inliers
+    best_fit = np.polyfit(x[best_inliers], y[best_inliers], 1)
+    return best_fit, best_inliers
+
+
+def circlefit(x, y):
+    A = np.block([[-2 * x], [-2 * y], [np.ones_like(x)]]).T
+    if np.linalg.det(A.T @ A):
+        x0, y0, b = np.linalg.solve(A.T @ A, A.T @ (-(x**2) - (y**2)))
+        r = np.sqrt(x0**2 + y0**2 - b)
+        return x0, y0, r
+    else:
+        return 0, 0, 0
+
+
+def ransac_fit_circle(x, y, threshold=10, samples=15, maxRadius=1000):
+    best_inliers = np.zeros(x.shape[0], dtype=bool)
+    for i in range(x.shape[0] - 1):
+        indices = np.arange(i, i + samples) % (x.shape[0])
+        x0, y0, r = circlefit(x[indices], y[indices])
+        residuals = np.abs(
+            np.linalg.norm(np.block([[x], [y]]).T - np.block([x0, y0]), axis=1) - r
+        )
+        inliers = residuals <= threshold
+        if r < maxRadius:
+            if np.sum(inliers) > np.sum(best_inliers):
+                best_inliers = inliers
+    x0, y0, r = circlefit(x[best_inliers], y[best_inliers])
+    return [x0, y0, r], best_inliers
+
+
+splinePoints_copy = orderedPoints.copy()
+inlier_linePoints_list = []
+line_list = []
+inlier_mask = np.zeros_like(splinePoints_copy[:, 0], dtype=bool)
+
+while True:
+    fit, inlier_mask = ransac_fit_line_alt(
+        splinePoints_copy[:, 0],
+        splinePoints_copy[:, 1],
+        threshold=48,
+    )
+    if np.sum(inlier_mask) < 20:
+        break
+    inlier_linePoints_list.append(splinePoints_copy[inlier_mask])
+    x_data = np.linspace(
+        np.min(splinePoints_copy[inlier_mask][:, 0]),
+        np.max(splinePoints_copy[inlier_mask][:, 0]),
+        101,
+    )
+    y_data = fit[0] * x_data + fit[1]
+    line_list.append(np.block([[x_data], [y_data]]).T)
+
+    outlier_mask = np.logical_not(inlier_mask)
+    splinePoints_copy = splinePoints_copy[outlier_mask]
+
+inlier_CirclePoints_list = []
+circle_list = []
+theta = np.linspace(0, 2 * np.pi, 360)
+inlier_mask = np.zeros_like(splinePoints_copy[:, 0], dtype=bool)
+
+while True:
+    fit, inlier_mask = ransac_fit_circle(
+        splinePoints_copy[:, 0], splinePoints_copy[:, 1], threshold=15, samples=10
+    )
+    if np.sum(inlier_mask) < 5:
+        break
+    inlier_CirclePoints_list.append(splinePoints_copy[inlier_mask])
+
+    x_data = fit[2] * np.cos(theta) + fit[0]
+    y_data = fit[2] * np.sin(theta) + fit[1]
+
+    circle_list.append(np.block([[x_data], [y_data]]).T)
+
+    outlier_mask = np.logical_not(inlier_mask)
+    splinePoints_copy = splinePoints_copy[outlier_mask]
+
+
+fig = plt.figure(figsize=(7, 7))
+ax = fig.add_subplot(111)
+for circle in circle_list:
+    ax.plot(
+        circle[:, 0],
+        circle[:, 1],
+        "-",
+    )
+for inlier_CirclePoints in inlier_CirclePoints_list:
+    ax.plot(
+        inlier_CirclePoints[:, 0],
+        inlier_CirclePoints[:, 1],
+        "o",
+    )
+ax.set_title("ransac")
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+ax.set_xlim((0, 950))
+ax.set_ylim((0, 2000))
+ax.invert_yaxis()
+ax.tick_params(top=True, labeltop=True, bottom=False, labelbottom=False)
+ax.set_box_aspect(np.max(splinePoints[:, 1]) / np.max(splinePoints[:, 0]))
+plt.tight_layout()
+
+fig = plt.figure(figsize=(7, 7))
+ax = fig.add_subplot(111)
+for line in line_list:
+    ax.plot(
+        line[:, 0],
+        line[:, 1],
+        "-",
+    )
+for inlier_linePoint in inlier_linePoints_list:
+    ax.plot(
+        inlier_linePoint[:, 0],
+        inlier_linePoint[:, 1],
+        "o",
+    )
+ax.set_title("ransac")
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+ax.set_xlim((0, 950))
+ax.set_ylim((0, 2000))
+ax.invert_yaxis()
+ax.tick_params(top=True, labeltop=True, bottom=False, labelbottom=False)
+ax.set_box_aspect(np.max(splinePoints[:, 1]) / np.max(splinePoints[:, 0]))
+plt.tight_layout()
+plt.show()
+
+
+"""
 # Calculate sum angles
 sumAngles = np.array([])
 numAnglePoints = 5
@@ -180,8 +328,6 @@ for i in range(angles.shape[0]):
         if idx > angles.shape[0] - 1:
             indices[j] = idx - angles.shape[0]
     sumAngles = np.append(sumAngles, np.mean(angles[indices]))
-# print(sumAngles)
-
 
 # Plot
 fig = plt.figure(figsize=(7, 7))
@@ -296,3 +442,4 @@ df.to_csv(
     index=False,
     header=False,
 )
+"""

@@ -27,6 +27,44 @@ void executePyScript() {
     }
 }
 
+cv::Point2i centerPixelCloud(cv::Mat img, cv::Rect rect) {
+    cv::Mat crop = img(rect);
+    std::vector<cv::Point2i> locations;
+    cv::findNonZero(crop, locations);
+    int x_center = 0;
+    for (auto point : locations) {
+        x_center += point.x;
+    }
+    int y_center = 0;
+    for (auto point : locations) {
+        y_center += point.y;
+    }
+    x_center = double(x_center) / double(locations.size());
+    y_center = double(y_center) / double(locations.size());
+    x_center += rect.x;
+    y_center += rect.y;
+
+    return cv::Point2i(x_center, y_center);
+}
+
+cv::Mat getMean(std::vector<cv::Mat> &images) {
+    if (images.empty()) {
+        return Mat();
+    }
+
+    cv::Mat m(images[0].rows, images[0].cols, CV_64FC3);
+    m.setTo(Scalar(0, 0, 0, 0));
+
+    cv::Mat temp;
+    for (int i = 0; i < images.size(); ++i) {
+        images[i].convertTo(temp, CV_64FC3);
+        m += temp;
+    }
+
+    m.convertTo(m, CV_8U, 1. / images.size());
+    return m;
+}
+
 std::vector<splineData> getSplineData() {
     std::vector<splineData> spline_data;
     splineData data_point;
@@ -78,7 +116,7 @@ void save2csv(std::vector<cv::Point> dataPoints) {
     remove("../../prop/dataPoints.csv");
 
     std::ofstream file;
-    file.open("../../prop/dataPoints.csv");
+    file.open("../../prop/dataPoints10.csv");
 
     for (auto point : dataPoints) {
         file << point.x << "," << point.y << std::endl;
@@ -87,7 +125,7 @@ void save2csv(std::vector<cv::Point> dataPoints) {
 }
 
 std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
-    bool rotrect = true;
+    bool rotrect = false;
     cv::Mat demoVid = images.at(0);
 
     cv::Mat diffFrame;
@@ -105,11 +143,13 @@ std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
     std::cout << "Size of images: " << images.size() << std::endl;
 
     // Video writer
+    /*
     int codec = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');  // select desired codec (must be available at runtime)
     double fps = 20.0;                                        // framerate of the created video stream
     std::string filename = "../../out/detecTrackbBox.avi";    // name of the output video file
     cv::Size size(992, 2000);
     cv::VideoWriter writer(filename, codec, fps, size, true);
+    */
 
     for (auto i = 1; i < images.size(); i++) {
         diffFrame = images.at(i) - lastFrame;
@@ -125,7 +165,7 @@ std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
         if (nonZeros.size() != 0) {
             if (rotrect) {
                 rotBox = cv::minAreaRect(nonZeros);
-                if (rotRectArea(rotBox) > 500 && rotRectArea(rotBox) < 25000) {
+                if (rotRectArea(rotBox) > 500 && rotRectArea(rotBox) < 50000) {
                     drawRotRect(displayImg, rotBox);
                     cv::Point center = rotBox.center;
                     trackPoints.push_back(center);
@@ -198,7 +238,7 @@ cv::Mat detectTrack(HIDS &hcam, Camera &cam, SerialSTM32 &ser, std::string confi
 
         std::cout << "Size of track images :" << trackImages.size() << std::endl;
 
-        ser.WriteSerialPort(10);
+        ser.WriteSerialPort(9);
 
         int lastIdx = 0;
         int currentIdx = 0;
