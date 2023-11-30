@@ -12,7 +12,7 @@ def kdTreeSKlearn(points):
 
 
 points = np.loadtxt(
-    "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/prop/dataPoints8.csv",
+    "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/prop/dataPoints.csv",
     # "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/prop/dataPoints8.csv",
     delimiter=",",
     dtype=int,
@@ -136,7 +136,7 @@ directions = directions.reshape((int(directions.shape[0] / 2), 2))
 
 # spline correction
 ratio = 1.8
-increment = 0.5
+""" increment = 0.5
 
 startDir = np.array([-np.sqrt(2), -np.sqrt(2)])
 halfDir = np.array([-np.sqrt(2), +np.sqrt(2)])
@@ -160,7 +160,7 @@ for i in range(directions.shape[0] - 1):
             dist2Points(splinePoints[i], splinePoints[i + 1]),
             dist2Points(splinePoints[i - 1], splinePoints[i]),
             dist2Points(splinePoints[i - 1], splinePoints[i + 1]),
-        )
+        ) """
 
 
 # Ransac Plausch
@@ -316,7 +316,6 @@ plt.tight_layout()
 plt.show()
 
 
-"""
 # Calculate sum angles
 sumAngles = np.array([])
 numAnglePoints = 5
@@ -355,6 +354,7 @@ ax.tick_params(top=True, labeltop=True, bottom=False, labelbottom=False)
 ax.set_box_aspect(np.max(orderedPoints[:, 1]) / np.max(orderedPoints[:, 0]))
 ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 plt.tight_layout()
+
 
 # Velocety plot
 from matplotlib.collections import LineCollection
@@ -436,10 +436,10 @@ dataSet = np.block(
 # Convert to pandas dataframe
 df = pd.DataFrame(dataSet.T)
 
+
 # Save as .csv
 df.to_csv(
     "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/prop/splineData.csv",
     index=False,
     header=False,
 )
-"""

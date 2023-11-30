@@ -1,5 +1,13 @@
 #include "detectTrack.hpp"
 
+cv::Mat drawPoints(cv::Mat src, std::vector<cv::Point> points) {
+    cv::Mat dst = src.clone();
+    for (auto point : points) {
+        cv::circle(dst, point, 10, cv::Scalar(255), -1);
+    }
+    return dst;
+}
+
 int rotRectArea(cv::RotatedRect rRect) {
     cv::Point2f vertices[4];
     rRect.points(vertices);
@@ -49,15 +57,15 @@ cv::Point2i centerPixelCloud(cv::Mat img, cv::Rect rect) {
 
 cv::Mat getMean(std::vector<cv::Mat> &images) {
     if (images.empty()) {
-        return Mat();
+        return cv::Mat();
     }
 
-    cv::Mat m(images[0].rows, images[0].cols, CV_64FC3);
-    m.setTo(Scalar(0, 0, 0, 0));
+    cv::Mat m(images[0].rows, images[0].cols, CV_64FC1);
+    m.setTo(cv::Scalar(0));
 
     cv::Mat temp;
     for (int i = 0; i < images.size(); ++i) {
-        images[i].convertTo(temp, CV_64FC3);
+        images[i].convertTo(temp, CV_64FC1);
         m += temp;
     }
 
@@ -113,10 +121,10 @@ void drawSpline(cv::Mat &img, std::vector<splineData> spline_data) {
 }
 
 void save2csv(std::vector<cv::Point> dataPoints) {
-    remove("../../prop/dataPoints.csv");
+    remove("../../prop/dataPoints15.csv");
 
     std::ofstream file;
-    file.open("../../prop/dataPoints10.csv");
+    file.open("../../prop/dataPoints15.csv");
 
     for (auto point : dataPoints) {
         file << point.x << "," << point.y << std::endl;
@@ -136,10 +144,6 @@ std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
     cv::RotatedRect rotBox;
     std::vector<cv::Point> trackPoints;
 
-    std::string windowName = "Images";
-    cv::namedWindow(windowName, cv::WINDOW_NORMAL);
-    cv::resizeWindow(windowName, 300, 666);
-
     std::cout << "Size of images: " << images.size() << std::endl;
 
     // Video writer
@@ -151,10 +155,10 @@ std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
     cv::VideoWriter writer(filename, codec, fps, size, true);
     */
 
-    for (auto i = 1; i < images.size(); i++) {
+    for (auto i = 0; i < images.size(); i++) {
         diffFrame = images.at(i) - lastFrame;
         lastFrame = images.at(i).clone();
-        demoVid = images.at(i).clone();
+        // demoVid = images.at(i).clone();
 
         cv::threshold(diffFrame, binaryDiffImg, 30, 255, cv::THRESH_BINARY);
 
@@ -181,7 +185,8 @@ std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
             if (!rotrect) {
                 if (boundingBox.area() > 500 && boundingBox.area() < 50000) {
                     cv::rectangle(displayImg, boundingBox, cv::Scalar(255), 3);
-                    cv::Point center = (boundingBox.br() + boundingBox.tl()) * 0.5;
+                    // cv::Point center = (boundingBox.br() + boundingBox.tl()) * 0.5;
+                    cv::Point center = centerPixelCloud(binaryDiffImg, boundingBox);
                     trackPoints.push_back(center);
 
                     // Demo Video
@@ -200,14 +205,15 @@ std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
         // cv::cvtColor(demoVid, color, cv::COLOR_GRAY2BGR);
         // writer.write(color);
         // ***********************************************************
-
-        cv::imshow(windowName, images.at(i));
-
-        char c = cv::waitKey(1000 / 30);
-        if (c == 27) {
-            break;
-        }
     }
+    cv::Mat pointsOnMat = drawPoints(images.at(0), trackPoints);
+
+    std::string windowName = "samplePoints";
+    cv::namedWindow(windowName, cv::WINDOW_NORMAL);
+    cv::resizeWindow(windowName, 300, 666);
+    cv::imshow(windowName, pointsOnMat);
+    cv::waitKey(0);
+
     windowName = "Boxes";
     cv::namedWindow(windowName, cv::WINDOW_NORMAL);
     cv::resizeWindow(windowName, 300, 666);
