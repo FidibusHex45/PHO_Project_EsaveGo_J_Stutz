@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     cv::Mat binaryFrame;
     cv::Mat diffImg;
     cv::Mat binDiffImg;
-    cv::Mat greyFrameMasked;
+    cv::Mat maskedFrame;
     cv::Mat lastFrame;
 
     cv::Rect boundingBox;
@@ -94,15 +94,14 @@ int main(int argc, char *argv[]) {
             /* Dont do this ->      cv::Mat frame1 = frame.clone();
                                     cv::medianBlur(frame, frame1, 9); */
 
-            cv::cvtColor(frame, greyFrame, cv::COLOR_BGR2GRAY);
-            greyFrame.copyTo(greyFrameMasked, mask);
+            frame.copyTo(maskedFrame, mask);
 
-            diffImg = greyFrameMasked - lastFrame;
-            lastFrame = greyFrameMasked.clone();
+            diffImg = maskedFrame - lastFrame;
+            lastFrame = maskedFrame.clone();
 
-            cv::threshold(diffImg, binDiffImg, 50, 255, cv::THRESH_BINARY);
+            cv::threshold(diffImg, binDiffImg, 30, 255, cv::THRESH_BINARY);
             boundingBox = cv::boundingRect(binDiffImg);
-            if (boundingBox.area() > 500 && boundingBox.area() < 50000) {
+            if (boundingBox.area() > 200 && boundingBox.area() < 50000) {
                 // cv::rectangle(frame, boundingBox, cv::Scalar(0, 255, 0), 3);
                 center = (boundingBox.br() + boundingBox.tl()) * 0.5;
                 cv::circle(frame, center, 100, cv::Scalar(0, 255, 0), 3);

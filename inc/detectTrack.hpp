@@ -23,7 +23,14 @@ typedef struct {
     int slope;
 } splineData;
 
-int rotRectArea(cv::RotatedRect rRect);
+typedef struct {
+    cv::Mat mask;
+    cv::Mat meanTrack;
+    std::vector<splineData> splineData_vec;
+}
+
+int
+rotRectArea(cv::RotatedRect rRect);
 void drawRotRect(cv::Mat &dst, cv::RotatedRect rRect);
 void executePyScript();
 std::vector<splineData> getSplineData();

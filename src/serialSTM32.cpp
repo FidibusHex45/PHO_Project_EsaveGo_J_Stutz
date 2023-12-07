@@ -1,6 +1,6 @@
 #include "serialSTM32.hpp"
 
-void SerialSTM32::init(char *com_port, DWORD baud) {
+void SerialSTM32::init(char* com_port, DWORD baud) {
     connected_ = false;
     h_Serial = CreateFile(static_cast<LPCSTR>(com_port),
                           GENERIC_READ | GENERIC_WRITE,
@@ -37,15 +37,18 @@ void SerialSTM32::init(char *com_port, DWORD baud) {
 }
 
 void SerialSTM32::WriteSerialPort(int msg) {
-    char sBuff[5];
-    DWORD dwRead = 0;
+    auto data = std::to_string(msg);
+    while (data.length() < 3) {
+        data.insert(0, "0");
+    }
+    char sBuff[4] = {};
+    strcpy(sBuff, data.c_str());
 
-    sprintf_s(sBuff, "%d", msg);
-    std::cout << "Message: " << sBuff[0] << sBuff[1] << sBuff[2] << sBuff[3] << sBuff[4] << std::endl;
+    DWORD dwRead = 0;
     bool error = WriteFile(h_Serial, sBuff, sizeof(sBuff), &dwRead, NULL);
 
     if (error) {
-        std::cout << "Succesfull written " << dwRead << " bytes." << std::endl;
+        // Success du Tubel!!
     }
 
     else {

@@ -19,15 +19,15 @@ find_package(uEye-SDK 4.95)
 add_executable(
     ${PROJECT_NAME} 
     #src/main.cpp
-    src/test.cpp
-    src/camera.cpp
-    src/mem_handler.cpp
+    #src/test.cpp
+    #src/camera.cpp
+    #src/mem_handler.cpp
     src/serialSTM32.cpp
     src/keystate.cpp
-    src/detectTrack.cpp
+    #src/detectTrack.cpp
     #util/trackBar.cpp
     #util/test.cpp
-    #src/slider.cpp
+    util/slider.cpp
     #src/serial.cpp
     )
 

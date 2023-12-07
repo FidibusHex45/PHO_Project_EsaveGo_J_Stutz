@@ -28,7 +28,7 @@ void drawRotRect(cv::Mat &dst, cv::RotatedRect rRect) {
 
 void executePyScript() {
     std::cout << "executing python script" << std::endl;
-    int s_ret = system("C:/Users/joshu/anaconda3/envs/KI/python.exe ../../py/trackInterpolation.py");
+    int s_ret = system("C:/Users/joshu/anaconda3/envs/KI/python.exe ../../py/clustering.py");
 
     if (s_ret == 0) {
         std::cout << "Execution successful." << std::endl;
@@ -55,7 +55,7 @@ cv::Point2i centerPixelCloud(cv::Mat img, cv::Rect rect) {
     return cv::Point2i(x_center, y_center);
 }
 
-cv::Mat getMean(std::vector<cv::Mat> &images) {
+cv::Mat getMean(std::vector<cv::Mat> images) {
     if (images.empty()) {
         return cv::Mat();
     }
@@ -79,7 +79,7 @@ std::vector<splineData> getSplineData() {
     std::string line, value;
     int colNum = 0;
 
-    std::fstream data("../../prop/splineData.csv", std::ios::in);
+    std::fstream data("../../data/splineData.csv", std::ios::in);
     if (data.is_open()) {
         while (getline(data, line)) {
             std::stringstream str(line);
@@ -121,10 +121,10 @@ void drawSpline(cv::Mat &img, std::vector<splineData> spline_data) {
 }
 
 void save2csv(std::vector<cv::Point> dataPoints) {
-    remove("../../prop/dataPoints15.csv");
+    remove("../../data/dataPoints.csv");
 
     std::ofstream file;
-    file.open("../../prop/dataPoints15.csv");
+    file.open("../../data/dataPoints.csv");
 
     for (auto point : dataPoints) {
         file << point.x << "," << point.y << std::endl;
@@ -258,9 +258,9 @@ cv::Mat detectTrack(HIDS &hcam, Camera &cam, SerialSTM32 &ser, std::string confi
                 trackImages.emplace_back(frame.clone());
             }
         }
-
         ser.WriteSerialPort(0);
-        std::cout << "Size of track images :" << trackImages.size() << std::endl;
+
+        cv::Mat meanTrack = getMean(trackImages);
 
         trackPoints = getTrackPoints(trackImages);
         save2csv(trackPoints);
@@ -268,8 +268,7 @@ cv::Mat detectTrack(HIDS &hcam, Camera &cam, SerialSTM32 &ser, std::string confi
         executePyScript();
         auto spline_data = getSplineData();
 
-        cv::Mat displayImg = trackImages.at(0).clone();
-
+        cv::Mat displayImg = meanTrack.clone();
         drawSpline(displayImg, spline_data);
 
         windowName = "Mask";

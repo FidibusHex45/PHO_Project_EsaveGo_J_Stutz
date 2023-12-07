@@ -12,8 +12,8 @@ def kdTreeSKlearn(points):
 
 
 points = np.loadtxt(
-    "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/prop/dataPoints.csv",
-    # "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/prop/dataPoints8.csv",
+    "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/data/dataPoints3.csv",
+    # "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/data/dataPoints8.csv",
     delimiter=",",
     dtype=int,
 )
@@ -56,7 +56,7 @@ k = 3
 # smoothing while smaller values of s indicate less
 # smoothing.
 # s = None
-tck, t = splprep([orderedPoints[:, 0], orderedPoints[:, 1]], k=3, s=0.005, per=0)
+tck, t = splprep([orderedPoints[:, 0], orderedPoints[:, 1]], k=3, s=0.001, per=0)
 # (t,c,k) a tuple containing the vector of knots, the B-spline coefficients, and the degree of the spline
 
 # Spline interpolation
@@ -180,7 +180,7 @@ def ransac_fit_line(x, y, threshold=10, samples=2, trials=500):
     return best_fit, best_inliers
 
 
-def ransac_fit_line_alt(x, y, threshold=10, samples=10):
+def ransac_fit_line_alt(x, y, threshold=10, samples=5):
     best_inliers = np.zeros(x.shape[0], dtype=bool)
     for i in range(x.shape[0] - 1):
         indices = np.arange(i, i + samples) % (x.shape[0])
@@ -203,7 +203,7 @@ def circlefit(x, y):
         return 0, 0, 0
 
 
-def ransac_fit_circle(x, y, threshold=10, samples=15, maxRadius=1000):
+def ransac_fit_circle(x, y, threshold=10, samples=15, maxRadius=500):
     best_inliers = np.zeros(x.shape[0], dtype=bool)
     for i in range(x.shape[0] - 1):
         indices = np.arange(i, i + samples) % (x.shape[0])
@@ -219,27 +219,42 @@ def ransac_fit_circle(x, y, threshold=10, samples=15, maxRadius=1000):
     return [x0, y0, r], best_inliers
 
 
-splinePoints_copy = orderedPoints.copy()
+splinePoints_copy = splinePoints.copy()
 inlier_linePoints_list = []
 line_list = []
 inlier_mask = np.zeros_like(splinePoints_copy[:, 0], dtype=bool)
 
+dummyPoints = splinePoints.copy()
 while True:
     fit, inlier_mask = ransac_fit_line_alt(
-        splinePoints_copy[:, 0],
-        splinePoints_copy[:, 1],
-        threshold=48,
+        dummyPoints[:, 0], dummyPoints[:, 1], threshold=36, samples=10
     )
-    if np.sum(inlier_mask) < 20:
+    if np.sum(inlier_mask) < 6:
         break
-    inlier_linePoints_list.append(splinePoints_copy[inlier_mask])
-    x_data = np.linspace(
-        np.min(splinePoints_copy[inlier_mask][:, 0]),
-        np.max(splinePoints_copy[inlier_mask][:, 0]),
-        101,
+
+    length = np.linalg.norm(
+        np.array(
+            [
+                np.min(splinePoints_copy[inlier_mask, 0]),
+                np.min(splinePoints_copy[inlier_mask, 1]),
+            ]
+        )
+        - np.array(
+            [
+                np.max(splinePoints_copy[inlier_mask, 0]),
+                np.max(splinePoints_copy[inlier_mask, 1]),
+            ]
+        )
     )
-    y_data = fit[0] * x_data + fit[1]
-    line_list.append(np.block([[x_data], [y_data]]).T)
+    if length > 320:
+        inlier_linePoints_list.append(splinePoints_copy[inlier_mask])
+        x_data = np.linspace(
+            np.min(splinePoints_copy[inlier_mask][:, 0]),
+            np.max(splinePoints_copy[inlier_mask][:, 0]),
+            101,
+        )
+        y_data = fit[0] * x_data + fit[1]
+        line_list.append(np.block([[x_data], [y_data]]).T)
 
     outlier_mask = np.logical_not(inlier_mask)
     splinePoints_copy = splinePoints_copy[outlier_mask]
@@ -251,9 +266,9 @@ inlier_mask = np.zeros_like(splinePoints_copy[:, 0], dtype=bool)
 
 while True:
     fit, inlier_mask = ransac_fit_circle(
-        splinePoints_copy[:, 0], splinePoints_copy[:, 1], threshold=15, samples=10
+        splinePoints_copy[:, 0], splinePoints_copy[:, 1], threshold=20, samples=10
     )
-    if np.sum(inlier_mask) < 5:
+    if np.sum(inlier_mask) < 10:
         break
     inlier_CirclePoints_list.append(splinePoints_copy[inlier_mask])
 
@@ -272,13 +287,13 @@ for circle in circle_list:
     ax.plot(
         circle[:, 0],
         circle[:, 1],
-        "-",
+        "-g",
     )
 for inlier_CirclePoints in inlier_CirclePoints_list:
     ax.plot(
         inlier_CirclePoints[:, 0],
         inlier_CirclePoints[:, 1],
-        "o",
+        "ob",
     )
 ax.set_title("ransac")
 ax.set_xlabel("x")
@@ -289,6 +304,7 @@ ax.invert_yaxis()
 ax.tick_params(top=True, labeltop=True, bottom=False, labelbottom=False)
 ax.set_box_aspect(np.max(splinePoints[:, 1]) / np.max(splinePoints[:, 0]))
 plt.tight_layout()
+
 
 fig = plt.figure(figsize=(7, 7))
 ax = fig.add_subplot(111)
@@ -296,13 +312,13 @@ for line in line_list:
     ax.plot(
         line[:, 0],
         line[:, 1],
-        "-",
+        "-g",
     )
 for inlier_linePoint in inlier_linePoints_list:
     ax.plot(
         inlier_linePoint[:, 0],
         inlier_linePoint[:, 1],
-        "o",
+        "or",
     )
 ax.set_title("ransac")
 ax.set_xlabel("x")
@@ -313,8 +329,6 @@ ax.invert_yaxis()
 ax.tick_params(top=True, labeltop=True, bottom=False, labelbottom=False)
 ax.set_box_aspect(np.max(splinePoints[:, 1]) / np.max(splinePoints[:, 0]))
 plt.tight_layout()
-plt.show()
-
 
 # Calculate sum angles
 sumAngles = np.array([])
@@ -328,7 +342,7 @@ for i in range(angles.shape[0]):
             indices[j] = idx - angles.shape[0]
     sumAngles = np.append(sumAngles, np.mean(angles[indices]))
 
-# Plot
+# %% Spline Plot
 fig = plt.figure(figsize=(7, 7))
 ax = fig.add_subplot(111)
 ax.plot(orderedPoints[:, 0], orderedPoints[:, 1], "ob", label="sample points")
@@ -356,9 +370,8 @@ ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 plt.tight_layout()
 
 
-# Velocety plot
+# %% Velocety plot
 from matplotlib.collections import LineCollection
-from matplotlib.colors import BoundaryNorm, ListedColormap
 
 points = splinePoints.reshape(-1, 1, 2)
 segments = np.concatenate([points[:-1], points[1:]], axis=1)
@@ -386,7 +399,7 @@ ax.tick_params(top=True, labeltop=True, bottom=False, labelbottom=False)
 plt.tight_layout()
 
 
-# Direction plot
+# %% Direction plot
 fig = plt.figure(figsize=(7, 7))
 ax = fig.add_subplot(111)
 ax.plot(
@@ -419,7 +432,7 @@ ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 
 plt.show()
 
-
+# %% CSV Shit
 # Combine 0,1 degree derivative in one array
 x = splinePoints[:, 0].round().astype(int)
 y = splinePoints[:, 1].round().astype(int)
