@@ -574,7 +574,7 @@ if __name__ == "__main__":
 # Combine 0,1 degree derivative in one array
 x = splinePoints[:, 0].round().astype(int)
 y = splinePoints[:, 1].round().astype(int)
-d = np.zeros(splinePoints.shape[0])
+d = (avgdiffs * 1e4).astype(int)
 dataSet = np.block(
     [
         [x],
@@ -582,9 +582,10 @@ dataSet = np.block(
         [d],
     ]
 )
+dataSet = np.column_stack([x, y, d])
 
 # Convert to pandas dataframe
-df = pd.DataFrame(dataSet.T)
+df = pd.DataFrame(dataSet)
 
 
 # Save as .csv
