@@ -2,3 +2,5 @@ build/
 prop/
 out/
 data/
+py/__pycache__
+py/modules/__pycache__
