@@ -1,41 +1,120 @@
 #include "detectTrack.hpp"
 
-cv::Mat drawPoints(cv::Mat src, std::vector<cv::Point> points) {
-    cv::Mat dst = src.clone();
-    for (auto point : points) {
-        cv::circle(dst, point, 10, cv::Scalar(255), -1);
+Trackdetector::Trackdetector(MemHandler *hmem, Camera *camera, SerialSTM32 *serial, std::string configurePath)
+    : mem(hmem), cam(camera), ser(serial), configPath(configurePath) {
+    cam->ConfigureCam(configPath);
+}
+
+trackData Trackdetector::detectTrack(std::string load_path, std::string save_path) {
+    recordSamples(300);
+    evaluateSampleMean();
+    evaluateSamples(30);
+    hcsv.save2csv(save_path, trackPoints);
+    executePyScript("C:/Users/joshu/anaconda3/envs/KI/python.exe", "../../py/clustering.py");
+    spline_data_proc = hcsv.loadSplineData(load_path, 90, 255);
+    track_Data.data = spline_data_proc;
+    track_Data.mean_img = sampleMean.clone();
+    track_Data.mask = evaluateMask();
+    return track_Data;
+}
+
+void Trackdetector::recordSamples(int nSamples) {
+    cv::Mat frame;
+    int lastIdx = 0;
+    int currentIdx = 0;
+
+    ser->WriteSerialPort(90);
+    while (trackSamples.size() < nSamples) {
+        currentIdx = mem->getActiveBufferID();
+
+        if (lastIdx != currentIdx) {
+            lastIdx = currentIdx;
+            frame = mem->getOpenCVMatRingImg();
+            trackSamples.emplace_back(frame.clone());
+        }
     }
-    return dst;
+    ser->WriteSerialPort(0);
 }
 
-int rotRectArea(cv::RotatedRect rRect) {
-    cv::Point2f vertices[4];
-    rRect.points(vertices);
+void Trackdetector::evaluateSamples(int thres) {
+    // cv::Mat demoVid = images.at(0).clone();
+    cv::Mat displayImg = trackSamples.at(0).clone();
+    cv::Mat lastFrame = trackSamples.at(0).clone();
+    cv::Mat diffFrame;
+    cv::Mat binaryDiffImg;
+    cv::Rect boundingBox;
+    // Video writer
+    /*
+    int codec = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');  // select desired codec (must be available at runtime)
+    double fps = 20.0;                                        // framerate of the created video stream
+    std::string filename = "../../out/detecTrackbBox.avi";    // name of the output video file
+    cv::Size size(992, 2000);
+    cv::VideoWriter writer(filename, codec, fps, size, true);
+    */
+    for (auto i = 0; i < trackSamples.size(); i++) {
+        diffFrame = trackSamples.at(i) - lastFrame;
+        lastFrame = trackSamples.at(i).clone();
+        // demoVid = images.at(i).clone();
+        // threshold default = 30
+        cv::threshold(diffFrame, binaryDiffImg, thres, 255, cv::THRESH_BINARY);
 
-    double l = cv::norm(vertices[0] - vertices[1]);
-    double b = cv::norm(vertices[1] - vertices[2]);
+        boundingBox = cv::boundingRect(binaryDiffImg);
+        std::vector<cv::Point> nonZeros;
+        cv::findNonZero(binaryDiffImg, nonZeros);
 
-    return int(l * b + 0.5);
-}
-
-void drawRotRect(cv::Mat &dst, cv::RotatedRect rRect) {
-    cv::Point2f vertices[4];
-    rRect.points(vertices);
-    for (int i = 0; i < 4; i++) {
-        cv::line(dst, vertices[i], vertices[(i + 1) % 4], cv::Scalar(255), 2);
+        if (nonZeros.size() != 0) {
+            if (boundingBox.area() > 500 && boundingBox.area() < 50000) {
+                cv::rectangle(displayImg, boundingBox, cv::Scalar(255), 3);
+                // cv::Point center = (boundingBox.br() + boundingBox.tl()) * 0.5;
+                cv::Point center = centerPixelCloud(binaryDiffImg, boundingBox);
+                trackPoints.push_back(center);
+                // Demo Video
+                // ***********************************************************
+                // cv::rectangle(demoVid, boundingBox, cv::Scalar(255), 3);
+                // ***********************************************************
+                std::cout << "Distance: " << cv::norm(trackPoints.at(0) - center) << std::endl;
+            }
+        }
+        // Demo Video
+        // ***********************************************************
+        // cv::Mat color;
+        // cv::cvtColor(demoVid, color, cv::COLOR_GRAY2BGR);
+        // writer.write(color);
+        // ***********************************************************
     }
+    std::string windowName = "Boxes";
+    cv::namedWindow(windowName, cv::WINDOW_NORMAL);
+    cv::resizeWindow(windowName, 300, 666);
+    cv::imshow(windowName, displayImg);
+    cv::waitKey(0);
 }
 
-void executePyScript() {
-    std::cout << "executing python script" << std::endl;
-    int s_ret = system("C:/Users/joshu/anaconda3/envs/KI/python.exe ../../py/clustering.py");
-
-    if (s_ret == 0) {
-        std::cout << "Execution successful." << std::endl;
+void Trackdetector::evaluateSampleMean() {
+    if (trackSamples.empty()) {
+        std::cerr << "No samples found." << std::endl;
     }
+
+    sampleMean = cv::Mat(trackSamples[0].rows, trackSamples[0].cols, CV_64FC1);
+    sampleMean.setTo(cv::Scalar(0));
+
+    cv::Mat temp;
+    for (int i = 0; i < trackSamples.size(); ++i) {
+        trackSamples[i].convertTo(temp, CV_64FC1);
+        sampleMean += temp;
+    }
+
+    sampleMean.convertTo(sampleMean, CV_8U, 1. / trackSamples.size());
 }
 
-cv::Point2i centerPixelCloud(cv::Mat img, cv::Rect rect) {
+cv::Mat Trackdetector::evaluateMask() {
+    cv::Mat mask = cv::Mat::zeros(trackSamples.at(0).size(), CV_8UC1);
+    for (int i = 1; i < spline_data_proc.size(); i++) {
+        cv::line(mask, spline_data_proc.at(i - 1).point, spline_data_proc.at(i).point, cv::Scalar(255), 2);
+    }
+    return mask;
+}
+
+cv::Point2i Trackdetector::centerPixelCloud(cv::Mat img, cv::Rect rect) {
     cv::Mat crop = img(rect);
     std::vector<cv::Point2i> locations;
     cv::findNonZero(crop, locations);
@@ -55,232 +134,23 @@ cv::Point2i centerPixelCloud(cv::Mat img, cv::Rect rect) {
     return cv::Point2i(x_center, y_center);
 }
 
-cv::Mat getMean(std::vector<cv::Mat> images) {
-    if (images.empty()) {
-        return cv::Mat();
-    }
-
-    cv::Mat m(images[0].rows, images[0].cols, CV_64FC1);
-    m.setTo(cv::Scalar(0));
-
-    cv::Mat temp;
-    for (int i = 0; i < images.size(); ++i) {
-        images[i].convertTo(temp, CV_64FC1);
-        m += temp;
-    }
-
-    m.convertTo(m, CV_8U, 1. / images.size());
-    return m;
-}
-
-std::vector<splineData> getSplineData() {
-    std::vector<splineData> spline_data;
-    splineData data_point;
-    std::string line, value;
-    int colNum = 0;
-
-    std::fstream data("../../data/splineData.csv", std::ios::in);
-    if (data.is_open()) {
-        while (getline(data, line)) {
-            std::stringstream str(line);
-            colNum = 0;
-            while (getline(str, value, ',')) {
-                switch (colNum) {
-                    case 0:
-                        data_point.point.x = std::stoi(value);
-                        break;
-                    case 1:
-                        data_point.point.y = std::stoi(value);
-                        break;
-                    case 2:
-                        data_point.slope = std::stoi(value);
-                        break;
-                    default:
-                        std::cout << "Sacre bleu!" << std::endl;
-                }
-                colNum++;
-            }
-            spline_data.push_back(data_point);
-        }
-    } else {
-        std::cout << "Could not open the file" << std::endl;
-    }
-    std::cout << "first data point("
-              << "x: " << spline_data.at(0).point.x
-              << ", y: " << spline_data.at(0).point.y
-              << ", slope: " << spline_data.at(0).slope << ")"
-              << std::endl;
-
-    return spline_data;
-}
-
-void drawSpline(cv::Mat &img, std::vector<splineData> spline_data) {
-    for (int i = 1; i < spline_data.size(); i++) {
-        cv::line(img, spline_data.at(i - 1).point, spline_data.at(i).point, cv::Scalar(255), 5);
+void Trackdetector::executePyScript(std::string interpreter_path, std::string script_path) {
+    std::cout << "executing python script" << std::endl;
+    // Interpreter: C:/Users/joshu/anaconda3/envs/KI/python.exe
+    // Python script: ../../py/clustering.py
+    int s_ret = system((interpreter_path + " " + script_path).c_str());
+    if (s_ret == 0) {
+        std::cout << "Execution successful." << std::endl;
     }
 }
 
-void save2csv(std::vector<cv::Point> dataPoints) {
-    remove("../../data/dataPoints.csv");
-
-    std::ofstream file;
-    file.open("../../data/dataPoints.csv");
-
-    for (auto point : dataPoints) {
-        file << point.x << "," << point.y << std::endl;
+void Trackdetector::visualizeSpline(cv::Mat &dst) {
+    for (int i = 1; i < spline_data_proc.size(); i++) {
+        cv::line(dst, spline_data_proc.at(i - 1).point, spline_data_proc.at(i).point, cv::Scalar(255), 5);
     }
-    file.close();
-}
-
-std::vector<cv::Point> getTrackPoints(std::vector<cv::Mat> images) {
-    bool rotrect = false;
-    cv::Mat demoVid = images.at(0);
-
-    cv::Mat diffFrame;
-    cv::Mat lastFrame = images.at(0);
-    cv::Mat binaryDiffImg;
-    cv::Mat displayImg = images.at(0).clone();
-    cv::Rect boundingBox;
-    cv::RotatedRect rotBox;
-    std::vector<cv::Point> trackPoints;
-
-    std::cout << "Size of images: " << images.size() << std::endl;
-
-    // Video writer
-    /*
-    int codec = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');  // select desired codec (must be available at runtime)
-    double fps = 20.0;                                        // framerate of the created video stream
-    std::string filename = "../../out/detecTrackbBox.avi";    // name of the output video file
-    cv::Size size(992, 2000);
-    cv::VideoWriter writer(filename, codec, fps, size, true);
-    */
-
-    for (auto i = 0; i < images.size(); i++) {
-        diffFrame = images.at(i) - lastFrame;
-        lastFrame = images.at(i).clone();
-        // demoVid = images.at(i).clone();
-
-        cv::threshold(diffFrame, binaryDiffImg, 30, 255, cv::THRESH_BINARY);
-
-        boundingBox = cv::boundingRect(binaryDiffImg);
-        std::vector<cv::Point> nonZeros;
-        cv::findNonZero(binaryDiffImg, nonZeros);
-
-        if (nonZeros.size() != 0) {
-            if (rotrect) {
-                rotBox = cv::minAreaRect(nonZeros);
-                if (rotRectArea(rotBox) > 500 && rotRectArea(rotBox) < 50000) {
-                    drawRotRect(displayImg, rotBox);
-                    cv::Point center = rotBox.center;
-                    trackPoints.push_back(center);
-
-                    // Demo Video
-                    // ***********************************************************
-                    // drawRotRect(demoVid, rotBox);
-                    // ***********************************************************
-
-                    std::cout << "Distance: " << cv::norm(trackPoints.at(0) - center) << std::endl;
-                }
-            }
-            if (!rotrect) {
-                if (boundingBox.area() > 500 && boundingBox.area() < 50000) {
-                    cv::rectangle(displayImg, boundingBox, cv::Scalar(255), 3);
-                    // cv::Point center = (boundingBox.br() + boundingBox.tl()) * 0.5;
-                    cv::Point center = centerPixelCloud(binaryDiffImg, boundingBox);
-                    trackPoints.push_back(center);
-
-                    // Demo Video
-                    // ***********************************************************
-                    // cv::rectangle(demoVid, boundingBox, cv::Scalar(255), 3);
-                    // ***********************************************************
-
-                    std::cout << "Distance: " << cv::norm(trackPoints.at(0) - center) << std::endl;
-                }
-            }
-        }
-
-        // Demo Video
-        // ***********************************************************
-        // cv::Mat color;
-        // cv::cvtColor(demoVid, color, cv::COLOR_GRAY2BGR);
-        // writer.write(color);
-        // ***********************************************************
-    }
-    cv::Mat pointsOnMat = drawPoints(images.at(0), trackPoints);
-
-    std::string windowName = "samplePoints";
+    std::string windowName = "Spline visualisation";
     cv::namedWindow(windowName, cv::WINDOW_NORMAL);
     cv::resizeWindow(windowName, 300, 666);
-    cv::imshow(windowName, pointsOnMat);
+    cv::imshow(windowName, dst);
     cv::waitKey(0);
-
-    windowName = "Boxes";
-    cv::namedWindow(windowName, cv::WINDOW_NORMAL);
-    cv::resizeWindow(windowName, 300, 666);
-    cv::imshow(windowName, displayImg);
-    cv::waitKey(0);
-
-    return trackPoints;
-}
-
-cv::Mat detectTrack(HIDS &hcam, Camera &cam, SerialSTM32 &ser, std::string configPath) {
-    const int nSamples = 300;
-
-    std::string saveImgPath = "../../out/Mask.png";
-    std::string windowName;
-
-    cv::Mat frame;
-    cv::Mat trackMat = cv::Mat::zeros(cv::Size(cv::Point(992, 2000)), CV_8UC1);
-    std::vector<cv::Mat> trackImages;
-    std::vector<cv::Point> trackPoints;
-
-    try {
-        cam.ConfigureCam(configPath);
-
-        auto mem = MemHandler(&hcam);
-
-        mem.allocRingBuffer();
-        cam.SetCaptureMode(CONTINOUS_FREERUN);
-
-        std::cout << "Size of track images :" << trackImages.size() << std::endl;
-
-        ser.WriteSerialPort(9);
-
-        int lastIdx = 0;
-        int currentIdx = 0;
-
-        while (trackImages.size() < nSamples) {
-            currentIdx = mem.getActiveBufferID();
-
-            if (lastIdx != currentIdx) {
-                lastIdx = currentIdx;
-                frame = mem.getOpenCVMatRingImg();
-                trackImages.emplace_back(frame.clone());
-            }
-        }
-        ser.WriteSerialPort(0);
-
-        cv::Mat meanTrack = getMean(trackImages);
-
-        trackPoints = getTrackPoints(trackImages);
-        save2csv(trackPoints);
-
-        executePyScript();
-        auto spline_data = getSplineData();
-
-        cv::Mat displayImg = meanTrack.clone();
-        drawSpline(displayImg, spline_data);
-
-        windowName = "Mask";
-        cv::namedWindow(windowName, cv::WINDOW_NORMAL);
-        cv::resizeWindow(windowName, 300, 666);
-        cv::imshow(windowName, displayImg);
-        cv::waitKey(0);
-
-        cv::destroyAllWindows();
-
-    } catch (std::exception &ex) {
-        std::cout << "Error: " << ex.what() << std::endl;
-    }
-    return trackMat;
 }

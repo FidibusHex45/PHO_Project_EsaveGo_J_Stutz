@@ -2,10 +2,10 @@
   "manual": {
     "imageFormat": 20,
     "colorMode": 6,
-    "exposureTime": 20.0,
+    "exposureTime": 5.0,
     "shutterMode": 2,
-    "pixelCock": 237,
-    "fps": 40,
+    "pixelCock": 474,
+    "fps": 60,
     "offset": 0,
     "gain": 3,
     "gamma": 160,

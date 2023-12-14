@@ -9,7 +9,7 @@
 
 class SerialSTM32 {
    public:
-    void init(char *com_port, DWORD baud);
+    SerialSTM32(char *com_port, DWORD baud);
     void WriteSerialPort(int msg);
     bool CloseSerialPort();
     ~SerialSTM32();

@@ -32,6 +32,9 @@ class MemHandler {
     int getActiveBufferID();
     int activeBufferIdx = 0;
 
+    int imgWidth = 0;
+    int imgHeight = 0;
+
    private:
     char *getLatestImgRingPointer();
     void checkBufferSize(int bufSize);
@@ -61,8 +64,6 @@ class MemHandler {
     double fps = 0;
     int colorMode = 0;
     IS_RECT format;
-    int imgWidth = 0;
-    int imgHeight = 0;
 
     int imgFormat = 0;
 

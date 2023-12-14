@@ -28,7 +28,6 @@ class CSVHandler:
         y_data = data[:, 1].round().astype(int)
         v_data = np.around(data[:, 2], 3)
         processed_data = np.array([x_data, y_data, v_data], dtype=object).T
-        print(processed_data)
         df = pd.DataFrame(processed_data)
         df.to_csv(
             path,

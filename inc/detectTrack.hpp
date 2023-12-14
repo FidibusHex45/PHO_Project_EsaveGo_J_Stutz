@@ -13,29 +13,41 @@
 #include <string>
 
 #include "camera.hpp"
+#include "csv_handler.hpp"
 #include "mem_handler.hpp"
 #include "serialSTM32.hpp"
 
-#define ESAVE_GO_ROI_FORMAT 100
-
 typedef struct {
-    cv::Point point;
-    int slope;
-} splineData;
-
-typedef struct {
+    std::vector<splineData_proc> data;
     cv::Mat mask;
-    cv::Mat meanTrack;
-    std::vector<splineData> splineData_vec;
-}
+    cv::Mat mean_img;
+} trackData;
 
-int
-rotRectArea(cv::RotatedRect rRect);
-void drawRotRect(cv::Mat &dst, cv::RotatedRect rRect);
-void executePyScript();
-std::vector<splineData> getSplineData();
-void drawSpline(cv::Mat &img, std::vector<splineData> spline_data);
-void save2csv(std::vector<cv::Point> dataPoints);
-cv::Mat detectTrack(HIDS &hcam, Camera &cam, SerialSTM32 &ser, std::string configPath);
+class Trackdetector : private CSVHandler {
+   public:
+    Trackdetector(MemHandler *hmem, Camera *camera, SerialSTM32 *serial, std::string configurePath);
+    trackData detectTrack(std::string load_path, std::string save_path);
+
+   private:
+    void recordSamples(int nSamples);
+    void evaluateSamples(int thres);
+    void evaluateSampleMean();
+    cv::Mat evaluateMask();
+    cv::Point2i centerPixelCloud(cv::Mat img, cv::Rect rect);
+    void executePyScript(std::string interpreter_path, std::string script_path);
+    void visualizeSpline(cv::Mat &dst);
+
+    std::vector<cv::Mat> trackSamples;
+    std::vector<cv::Point> trackPoints;
+    std::vector<splineData_proc> spline_data_proc;
+    trackData track_Data;
+    cv::Mat sampleMean;
+    std::string configPath;
+
+    Camera *cam;
+    SerialSTM32 *ser;
+    CSVHandler hcsv;
+    MemHandler *mem;
+};
 
 #endif

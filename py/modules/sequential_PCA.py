@@ -58,7 +58,6 @@ class SequentialPCA:
                     self.points[idx[0] - 1], self.points[idx[0]]
                 ) + self.__dist2Points(self.points[idx[1] - 1], self.points[1])
                 p += 1
-            print(indices, currentLen)
             comp = self.__pca(self.points[indices])
             self.pcaS[i] = np.abs(comp)
 

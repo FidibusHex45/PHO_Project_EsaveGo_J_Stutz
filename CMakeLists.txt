@@ -18,17 +18,15 @@ find_package(uEye-SDK 4.95)
 
 add_executable(
     ${PROJECT_NAME} 
-    #src/main.cpp
-    #src/test.cpp
-    #src/camera.cpp
-    #src/mem_handler.cpp
+    src/main.cpp
+    src/camera.cpp
+    src/mem_handler.cpp
     src/serialSTM32.cpp
+    src/detectTrack.cpp
+    src/csv_handler.cpp
+    src/car_controller.cpp
+    src/KDTree.cpp
     src/keystate.cpp
-    #src/detectTrack.cpp
-    #util/trackBar.cpp
-    #util/test.cpp
-    util/slider.cpp
-    #src/serial.cpp
     )
 
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} uEye-SDK nlohmann_json::nlohmann_json ${PYTHON_LIBRARIES})

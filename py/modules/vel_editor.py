@@ -23,7 +23,7 @@ class VelocityEditor:
 
         self.x_data = data[:, 0]
         self.y_data = data[:, 1]
-        self.v_data = data[:, 2] / np.max(data[:, 2])
+        self.v_data = np.max(data[:, 2]) - data[:, 2] / np.max(data[:, 2])
 
         self.cmap = plt.colormaps.get_cmap(color_scheme)
         self.color_original = self.cmap(self.v_data)
@@ -33,6 +33,7 @@ class VelocityEditor:
         self.v_adjust = np.copy(self.v_data)
 
         self.indices_picked_points = np.array([])
+        self.rotB = 0
 
     def adjust(self):
         self.__initPlotBase()
@@ -48,7 +49,7 @@ class VelocityEditor:
         self.plotProp = self.base_ax.scatter(
             self.points[:, 0],
             self.points[:, 1],
-            color=self.color_adjust,
+            color=self.color_original,
             s=[50] * len(self.points),
             picker=3,
         )
@@ -69,36 +70,59 @@ class VelocityEditor:
 
     def __initPlotWidgets(self):
         self.__initPlotPointsSelection()
-        self.__initPlotSubmitBttn()
-        self.__initPlotResetBttn()
+        self.__initPlotVelSubmitBttn()
+        self.__initPlotVelResetBttn()
+        self.__initPlotRotBSubmitBttn()
+        self.__initPlotRotResetBttn()
         self.__initPlotOkBttn()
         self.__initPlotTxtbxVel()
+        self.__initPlotTxtbxRotB()
 
     def __initPlotPointsSelection(self):
         self.cid = self.fig.canvas.mpl_connect("pick_event", self.__on_pick_points)
 
-    def __initPlotSubmitBttn(self):
-        self.bttn_submit_ax = self.fig.add_axes([0.815, 0.83, 0.1, 0.03])
-        self.submit_button = Button(
-            self.bttn_submit_ax,
+    def __initPlotVelSubmitBttn(self):
+        self.bttn_Velsubmit_ax = self.fig.add_axes([0.815, 0.83, 0.1, 0.03])
+        self.submit_Vel_button = Button(
+            self.bttn_Velsubmit_ax,
             "Submit",
             color=(0.95, 0.95, 0.95, 0.8),
             hovercolor=(0.85, 0.85, 0.85, 0.8),
         )
-        self.submit_button.on_clicked(self.__on_click_bttn_submit)
+        self.submit_Vel_button.on_clicked(self.__on_click_bttn_vel_submit)
 
-    def __initPlotResetBttn(self):
-        self.bttn_reset_ax = self.fig.add_axes([0.815, 0.79, 0.1, 0.03])
-        self.reset_button = Button(
-            self.bttn_reset_ax,
+    def __initPlotRotBSubmitBttn(self):
+        self.bttn_Rotsubmit_ax = self.fig.add_axes([0.815, 0.715, 0.1, 0.03])
+        self.submit_rot_button = Button(
+            self.bttn_Rotsubmit_ax,
+            "Submit",
+            color=(0.95, 0.95, 0.95, 0.8),
+            hovercolor=(0.85, 0.85, 0.85, 0.8),
+        )
+        self.submit_rot_button.on_clicked(self.__on_click_bttn_rotB_submit)
+
+    def __initPlotVelResetBttn(self):
+        self.bttn_Velreset_ax = self.fig.add_axes([0.815, 0.79, 0.1, 0.03])
+        self.reset_vel_button = Button(
+            self.bttn_Velreset_ax,
             "Reset",
             color=(0.95, 0.95, 0.95, 0.8),
             hovercolor=(0.85, 0.85, 0.85, 0.8),
         )
-        self.reset_button.on_clicked(self.__on_click_bttn_reset)
+        self.reset_vel_button.on_clicked(self.__on_click_bttn_vel_reset)
+
+    def __initPlotRotResetBttn(self):
+        self.bttn_Rotreset_ax = self.fig.add_axes([0.815, 0.675, 0.1, 0.03])
+        self.reset_Rot_button = Button(
+            self.bttn_Rotreset_ax,
+            "Reset",
+            color=(0.95, 0.95, 0.95, 0.8),
+            hovercolor=(0.85, 0.85, 0.85, 0.8),
+        )
+        self.reset_Rot_button.on_clicked(self.__on_click_bttn_rot_reset)
 
     def __initPlotOkBttn(self):
-        self.bttn_ok_ax = self.fig.add_axes([0.815, 0.72, 0.1, 0.03])
+        self.bttn_ok_ax = self.fig.add_axes([0.815, 0.59, 0.1, 0.03])
         self.ok_button = Button(
             self.bttn_ok_ax,
             "Ok",
@@ -117,10 +141,21 @@ class VelocityEditor:
             hovercolor=(0.87, 1.0, 1.0, 0.8),
         )
 
+    def __initPlotTxtbxRotB(self):
+        self.txtbx_rotB_ax = self.fig.add_axes([0.67, 0.715, 0.12, 0.03])
+        self.rotB_txtbx = TextBox(
+            self.txtbx_rotB_ax,
+            "",
+            textalignment="right",
+            color=(0.99, 0.99, 0.99, 1),
+            hovercolor=(0.87, 1.0, 1.0, 0.8),
+        )
+
     def __initPlotTxt(self):
         self.__plot_text_info()
-        self._plot_text_adjust()
-        self._plot_text_velocity()
+        self.__plot_text_adjust()
+        self.__plot_text_velocity()
+        self.__plot_text_Rotate()
 
     def __plot_text_info(self):
         text = "Velocity Adjustment" + "\n"
@@ -139,7 +174,7 @@ class VelocityEditor:
             bbox=props,
         )
 
-    def _plot_text_adjust(self):
+    def __plot_text_adjust(self):
         text = "Adjust"
         props = dict(boxstyle="round", alpha=0.0)  # bbox features
         self.base_ax.text(
@@ -152,7 +187,7 @@ class VelocityEditor:
             bbox=props,
         )
 
-    def _plot_text_velocity(self):
+    def __plot_text_velocity(self):
         text = "Velocity:"
         props = dict(boxstyle="round", alpha=0.0)  # bbox features
         self.base_ax.text(
@@ -165,16 +200,30 @@ class VelocityEditor:
             bbox=props,
         )
 
+    def __plot_text_Rotate(self):
+        text = "Rotate:"
+        props = dict(boxstyle="round", alpha=0.0)  # bbox features
+        self.base_ax.text(
+            1.21,
+            0.8,
+            text,
+            transform=self.base_ax.transAxes,
+            fontsize=10,
+            verticalalignment="top",
+            bbox=props,
+        )
+
     def __initPlotBgLayout(self):
         self.__plot_BgBox_1()
         self.__plot_BgBox_2()
+        self.__plot_BgBox_3()
 
     def __plot_BgBox_1(self):
         self.base_ax.add_patch(
             FancyBboxPatch(
-                (1.175, 0.77),
+                (1.175, 0.61),
                 0.95,
-                0.22,
+                0.38,
                 alpha=1,
                 boxstyle="round, pad=0.01",
                 clip_on=False,
@@ -203,13 +252,30 @@ class VelocityEditor:
             )
         )
 
+    def __plot_BgBox_3(self):
+        self.base_ax.add_patch(
+            FancyBboxPatch(
+                (1.2, 0.71),
+                0.9,
+                0.1,
+                alpha=1,
+                boxstyle="round, pad=0.01",
+                clip_on=False,
+                edgecolor=(0.81, 0.81, 0.81, 0.8),
+                facecolor=(0.95, 0.95, 0.95, 0.8),
+                fill=True,
+                lw=1,
+                transform=self.base_ax.transAxes,
+            )
+        )
+
     def __on_pick_points(self, event):
-        self.plotProp._facecolors[event.ind, :] = (1, 0, 0, 1)
-        self.plotProp._edgecolors[event.ind, :] = (1, 0, 0, 1)
+        self.plotProp._facecolors[event.ind, :] = (1, 0, 1, 1)
+        self.plotProp._edgecolors[event.ind, :] = (1, 0, 1, 1)
         self.indices_picked_points = np.append(self.indices_picked_points, event.ind)
         self.fig.canvas.draw()
 
-    def __on_click_bttn_submit(self, event):
+    def __on_click_bttn_vel_submit(self, event):
         if not self.vel_txtbx.text.replace(".", "", 1).isdigit():
             return
         if not self.vel_txtbx.text:
@@ -219,27 +285,50 @@ class VelocityEditor:
             return
         if vel > 1:
             return
-        print(f"Velocity: {vel}")
         self.vel_txtbx.set_val("")
         self.__updateVelocity(self.indices_picked_points, vel)
         self.indices_picked_points = np.array([])
 
-    def __on_click_bttn_reset(self, event):
-        color_adjust = np.copy(self.color_original)
-        self.plotProp._facecolors[:] = color_adjust
-        self.plotProp._edgecolors[:] = color_adjust
+    def __on_click_bttn_rotB_submit(self, event):
+        if not self.rotB_txtbx.text.replace("-", "", 1).isdigit():
+            return
+        if not self.rotB_txtbx.text:
+            return
+        self.rotB = self.rotB + int(self.rotB_txtbx.text)
+        self.rotB_txtbx.set_val("")
+        self.__updateRotationB()
+
+    def __on_click_bttn_vel_reset(self, event):
+        self.color_adjust = np.copy(self.color_original)
+        self.plotProp._facecolors[:] = self.color_adjust
+        self.plotProp._edgecolors[:] = self.color_adjust
         self.v_adjust = np.copy(self.v_data)
         self.fig.canvas.draw()
 
+    def __on_click_bttn_rot_reset(self, event):
+        self.rotB = -self.rotB
+        self.__updateRotationB()
+        self.rotB = 0
+
     def __on_click_bttn_ok(self, event):
         plt.close("all")
-        # ToDo: return velocities
 
     def __updateVelocity(self, idx, vel):
+        # ☻idxA = (idx.astype(int) + self.rotB) % self.v_adjust.shape[0]
         self.color_adjust[idx.astype(int)] = self.cmap(vel)
         self.plotProp._facecolors[:] = self.color_adjust
         self.plotProp._edgecolors[:] = self.color_adjust
         self.v_adjust[idx.astype(int)] = vel
+        self.fig.canvas.draw()
+
+    def __updateRotationB(self):
+        localColors = np.zeros_like(self.plotProp._facecolors[:])
+        for i in range(localColors.shape[0]):
+            idx = (i - self.rotB) % localColors.shape[0]
+            localColors[idx] = self.plotProp._facecolors[i]
+            self.v_adjust[i] = self.v_data[idx]
+        self.plotProp._facecolors[:] = localColors
+        self.plotProp._edgecolors[:] = localColors
         self.fig.canvas.draw()
 
 
@@ -247,7 +336,7 @@ if __name__ == "__main__":
     data = np.loadtxt(
         "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/data/splinedata.csv",
         delimiter=",",
-        dtype=int,
+        dtype=float,
     )
     print(data)
     vEditor = VelocityEditor(data, "jet")

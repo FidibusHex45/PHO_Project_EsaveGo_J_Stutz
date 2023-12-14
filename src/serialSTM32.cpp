@@ -1,6 +1,6 @@
 #include "serialSTM32.hpp"
 
-void SerialSTM32::init(char* com_port, DWORD baud) {
+SerialSTM32::SerialSTM32(char* com_port, DWORD baud) {
     connected_ = false;
     h_Serial = CreateFile(static_cast<LPCSTR>(com_port),
                           GENERIC_READ | GENERIC_WRITE,

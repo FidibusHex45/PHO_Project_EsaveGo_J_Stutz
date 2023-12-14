@@ -1,17 +1,19 @@
-#include <iostream>
-#include <string>
+#pragma once
+
 #include <windows.h>
 
-class KeyState
-{
-public:
+#include <iostream>
+#include <string>
+
+class KeyState {
+   public:
     KeyState(int virtualKey);
     void SetKey(int virtualKey);
     bool KeyPressed();
     bool KeyReleased();
     bool keyPressedToggle();
 
-private:
+   private:
     int vkey;
     bool keyState;
 };
