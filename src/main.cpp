@@ -1,4 +1,16 @@
-/* main */
+/*
+ * @Projectname:        PHO_PROJECT_ESAVEGO_J_STUTZ
+ *
+ * @Description:        Carrera car detection and tracking.
+ *                      Track detection and analysis.
+ *
+ * @IDE:                VSCode
+ * @Language:           C++
+ * @Platform            Windows 11 Pro
+ *
+ * @Creation date:      08.08.2023
+ * @Creator:            Joshua Stutz
+ */
 
 #include <iostream>
 #include <opencv2/highgui.hpp>

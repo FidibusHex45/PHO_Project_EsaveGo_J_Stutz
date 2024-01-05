@@ -21,7 +21,11 @@ from modules.spline_interpolation import SplineInterpolation
 from modules.csv_handler import CSVHandler
 
 
-# The CarreraTrackAnalysisApp class is used for analyzing data related to a carrera track.
+"""
+The CarreraTrackAnalysisApp class is used for analyzing data related to a carrera track.
+"""
+
+
 class CarreraTrackAnalysisApp:
     def __init__(self, path_load, path_write, ref_point):
         self.path_write = path_write

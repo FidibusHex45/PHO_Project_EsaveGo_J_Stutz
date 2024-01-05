@@ -1,156 +1,29 @@
-# Semesterprojekt esave Go
+# Semesterprojekt esave Go!!!
+Die Firma [esave](https://www.esaveag.com/) produziert und verkauft intelligente Strassenbeleuchtung. Ein `Forschungsprojekt` mit der [FHGR](https://www.fhgr.ch/) hat zum Ziel diese Strassenbeleuchtungen mit zusätzlicher Intelligenz auszustatten. Es sollen neu statische und dynamische Objekte `detektiert` und `klassifiziert`, sowie `getrackt` und deren `Geschwindigkeit` bestimmt werden. Im Wesentlichen geht es darum, Fahrzeuge im Sichtbereich einer Kamera zu detektieren, deren Position bzw. Bewegung zu verfolgen und die jeweilige Geschwindigkeit zu bestimmen.
+Das hier behandelte Projekt, das den Namen «`esave Go`» trägt, ist eine Vereinfachung der Problemstellung des Forschungsprojektes der FHGR mit esave. Ausgangslage des Projektes ist eine vorgegebene [Carrera Go](https://www.carrera-toys.com/go) Rennbahn, ein mechanischer Aufbau mit Kamerahaltung und eine [Industriekamera](https://de.ids-imaging.com/store/u3-3080cp-rev-2-2.html).
+Die folgenden Probleme sollen im Zusammenhang mit diesem Projekt gelöst werden:
 
-## CameraSettings
-### Image Formats
-The Image formats for the IDS camera get basicly interpreted as predefinded areas of interest (AOI).
-Hereinafter is a list of souported formats for the this [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html):
+- `P1`.	Die Geschwindigkeit eines Carrera Go Auto kann über die Tastatur eines Laptops gesteuert werden
+- `P2`.	Die zur Verfügung gestellte Industriekamera lässt sich ansteuern und funktioniert.
+- `P3`.	Das Carrera Go Auto kann auf einen Startbefehl hin eine langsame Runde fahren, ohne die Bahn zu verlassen.
+- `P4`.	Die Position und Geschwindigkeit des Carrera Go Autos kann bestimmt werden.
+- `P5`.	Das Fahrzeug kann an beliebiger Stelle auf die Bahn gesetzt werden und von dort aus mit einem Startbefehl möglichst schnelle Rundenzeiten fahren.
 
-| Format ID | Resolution                   | Name         |
-| --------- | ---------------------------- | ------------ |
-| 5         | 2048 x 1536                  | 3M           |
-| 6         | 1920 x 1080                  | Full HD 16:9 |
-| 8         | 1280 x 960                   | 1.2M 4:3     |
-| 9         | 1280 x 720                   | HD 16:9      |
-| 13        | 640 x 480                    | VGA          |
-| 18        | 320 x 240                    | QVGA         |
-| 20        | 1600 x 1200                  | UXGA         |
-| 25        | 1280 x 1024                  | 1.3M SXGA    |
-| 26        | 2448 x 2048                  | 5M           |
-| 27        | 1024 x 768                   | XGA          |
-| 28        | 1024 x 1024                  | 1M           |
-| 29        | 800 x 600                    | SVGA         |
-| 35        | 1920 x 1200                  | WUXGA        |
-| 36        | Sensor maximum (2456 x 2054) |              |
-| 40        | 2048 x 2048                  | 4M           |
+Die Probleme P1-P5 werden mit folgenden Methoden gelöst:
 
-The image format can be selected by inserting the corresponding format ID in the [cameraSettings.json](./prop/cameraSettings.json)-file e.g.
-~~~json
-"imageFormat": 20
-~~~
+- `M1`.	Mikrocontroller verbunden mit Laptop gibt ein PWM-Signal aus, welches eine Elektronik steuert, um das Auto gepulst zu betreiben.
+- `M2`.	Die Ueye Library (C++) ermöglicht eine Ansteuerung der Kamera.
+- `M3`.	Ein (C++) Programm wartet auf eine Eingabe und übermittelt dem Mikrokontroller anschliessend über USB eine langsame Geschwindigkeit (PWM >10% Tastverhältnis).
+- `M4`.	Durch Bild-Subtraktion und Schwellwertverfahren mit anschliessender Schwerpunktermittlung wird die Position des Autos bestimmt.
+- `M5`.	Der Carrera Go track wird über das Tracking des Autos eingelesen. Der eingelesene Track wird dann mit Hilfe von PCA analysiert. Ergebnis sind Geschwindigkeitsvorgaben über die ganze Bahn hinweg. Fährt das Carrera Go Auto, so wird kontinuierlich dessen Position mit den Geschwindigkeitsvorgaben an jener Stelle verglichen und eingestellt.
 
-### Color modes
-The [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html) offers plenty of different color modes. These are listed in the table underneath.
+Resultat ist dementsprechend ein Carrera Auto, welches so schnell wie möglich Runden auf der vorgegebenen Bahn fährt. Dabei wird kontinuierlich die Geschwindigkeit gemessen und angezeigt.
 
-| ID 	| ID name               	| Description             |
-|----	|-----------------------	|-------------------------|
-| 28 	| IS_CM_MONO16          	| Grayscale (16)          |
-| 26 	| IS_CM_MONO12          	| Grayscale (12)          |
-| 34 	| IS_CM_MONO10          	| Grayscale (10)          |
-| 6  	| IS_CM_MONO8           	| Grayscale (8)       	  |
-| 29 	| IS_CM_SENSOR_RAW16    	| Raw sensor data (16) 	  |
-| 27 	| IS_CM_SENSOR_RAW12    	| Raw sensor data (12) 	  |
-| 33 	| IS_CM_SENSOR_RAW10    	| Raw sensor data (10) 	  |
-| 11 	| IS_CM_SENSOR_RAW8     	| Raw sensor data (8)  	  |
-| 30 	| IS_CM_BGR12_UNPACKED  	| Unpacked BGR (12 12 12) |
-| 35 	| IS_CM_BGR10_UNPACKED  	| Unpacked BGR (10 10 10) |
-| 25 	| IS_CM_BGR10_PACKED    	| BGR (10 10 10)          |
-| 1  	| IS_CM_BGR8_PACKED     	| BGR (8 8 8)             |
-| 31 	| IS_CM_BGRA12_UNPACKED 	| Unpacked BGR (12 12 12) |
-| 0  	| IS_CM_BGRA8_PACKED    	| BGR (8 8 8)             |
-| 24 	| IS_CM_BGRY8_PACKED    	| BGRY (8 8 8)            |
-| 2  	| IS_CM_BGR565_PACKED   	| BGR (5 6 5)             |
-| 3  	| IS_CM_BGR5_PACKED     	| BGR (5 5 5)         	  |
+## Projekt Aufbau
+Die Software ist teils in C++ und teils in Python verfasst. Dabei ist die Auswertung der eingelesenen Rennbahn in Python implementiert und der Rest in C++.
 
-`Note:`
-Please be aware, that not all colorformats are soupported by the openCV [cv::Mat](https://docs.opencv.org/4.x/d3/d63/classcv_1_1Mat.html) class. Valid colorformats for cv::Mat can be looked up [here](https://gist.github.com/yangcha/38f2fa630e223a8546f9b48ebbb3e61a). Formats that will work are therefore:
-* IS_CM_MONO8
-* IS_CM_MONO16
-* IS_CM_SENSOR_RAW8
-* IS_CM_SENSOR_RAW16
-
-Since the [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html) is greyscale only, all colorformats will not work with this setting. We recommend using the `IS_CM_MONO8` color mode, since it's the least computationlly intensive mode e.g.
-~~~json
-"colorMode": 6
-~~~
-
-### Exposure time / integration time
-The exposure time can be adjusted freely in the range from 0.02 - 10000ms e.g.
-~~~json
-"exposureTime": 15.0
-~~~
-
-### Shutter mode
-The [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html) offers two shuttermodes: rolling and global shutter.
-The shutter mode can also be selected in the [cameraSettings.json](./prop/cameraSettings.json)-file.
-* rolling shutter by setting the `shutterMode` to `1`
-* global shutter by setting the `shutterMode` to `2`
-e.g.
-~~~json
-"shutterMode": 2
-~~~
-
-### Pixelclock 
-The pixelclick can only be set to specific values, these values are shown below:
-* 118 (MHz)
-* 237 (MHz)
-* 474 (MHz)
-~~~json
-"pixelCock": 237
-~~~
-
-### Framerate
-The [camera](https://www.1stvision.com/cameras/IDS/IDS-manuals/uEye_Manual/camera-data-ui-125x.html) can handle framerates in `freerun` mode from 1 up to 52fps. e.g.
-~~~json
-"fps": 30
-~~~
-
-### Offset
-The offset or blacklevel is adustable in the range of 0-255. Under normal conditions we recommend setting the `offset` to `0`. e.g.
-~~~json
-"offset": 0
-~~~
-
-### Gain
-The gain can be adjusted in the range from 1 to 4. e.g.
-~~~json
-"gain": 3
-~~~
-
-### Gamma
-
-
-
-### Binning
-
-
-### Region of interest (AOI)
-The region of interest (uEye notation: AOI - area of interest) can activated/deactivated by setting the `enableRoi` [cameraSettings.json](./prop/cameraSettings.json)-file either to `0` or to `1`:
-~~~json
-"enableRoi": 1
-~~~
-or
-~~~json
-"enableRoi": 0
-~~~
-The boundary conditions for the AOI are listed in the table below:
-|                          |            |
-| ------------------------ | ---------- |
-| min roi width            | 256 (pxl)  |
-| max roi width            | 2456 (pxl) |
-| step width               | 8 (pxl)    |
-|                          |            |
-| min roi height           | 2 (pxl)    |
-| max roi height           | 2054 (pxl) |
-| step width               | 2 (pxl)    |
-|                          |            |
-| position grid horizontal | 4 (pxl)    |
-| position grid vertical   | 2 (pxl)    |
-
-Example:
-~~~json
-"enableRoi": 1,
-    "roi": {
-      "x": 100,
-      "y": 50,
-      "width": 512,
-      "height": 1024
-    }
-~~~
-
+### Klassendiagram C++ Software
 ~~~mermaid
----
-title: C++
----
 classDiagram
   Camera ..> MemHandler
   Camera ..> TrackHandler
@@ -205,6 +78,7 @@ classDiagram
   }
 ~~~
 
+### Klassendiagramm Python Software
 ~~~mermaid
 classDiagram
   CarreraTrackAnalysisApp <.. CSVHAndler
@@ -263,8 +137,10 @@ classDiagram
     +ref_point
     +csvHandler
   }
-
 ~~~
+
+## Dieses Projekt verwenden
+Dieses Projekt basiert auf dem `cmake` Buildsystem unter der verwendung von `vcpkg`. Beides muss auf dem PC installiert sein für eine problemlose Ausführung des Projektes. `vcpkg` wird für die Module opencv4 und nlohmann-json benötigt. Weiter muss möglicherweise der Python Interpreter-Pfad in [detectTrack.cpp](src/detectTrack.cpp) angepasst werden. Kamera und Mikrokontroller müssen vor dem Programmstart am PC angeschlossen werden.
 
 
 

@@ -3,7 +3,7 @@ import shapely
 from scipy.interpolate import splprep, splev
 
 """
-Description, ToDo
+Perform a splineInterpolation on a set of 2d coordinate points
 """
 
 
@@ -13,7 +13,7 @@ class SplineInterpolation:
     ):
         """
         Constructor
-        Perform spline interpolation on a set of points.
+        Perform spline interpolation on a set of 2d points.
 
         Parameters
         ----------
@@ -32,6 +32,9 @@ class SplineInterpolation:
         self.__basicInterpolation()
 
     def interpolate(self):
+        """
+        Perform interpolation
+        """
         self.__splineInterpol()
         self.__basicInterpolation()
         return self.bInt_SplinePoints

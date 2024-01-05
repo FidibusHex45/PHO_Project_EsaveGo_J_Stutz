@@ -17,7 +17,7 @@ trackData TrackHandler::getTrackData(std::string load_path, std::string save_pat
             scanTrack(load_path, save_path);
             break;
         } else {
-            std::cout << "Are you sure you want to delete \"C:/Windows/System32\"? (I have to change this print!)" << std::endl;
+            std::cout << "Invalid input, try again!" << std::endl;
         }
     }
     return track_Data;
@@ -288,7 +288,7 @@ void TrackHandler::saveConfiguration() {
         } else if (input == "n") {
             break;
         } else {
-            std::cout << "Are you sure you want to delete \"C:/Windows/System32\"? (I have to change this print!)" << std::endl;
+            std::cout << "Invalid input, try again!" << std::endl;
         }
     }
 }

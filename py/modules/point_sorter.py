@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.neighbors import KDTree
 
 """
-Description, ToDo
+Sorts a list of coordinate points
 """
 
 
@@ -14,12 +14,19 @@ class PointSorter:
 
         Parameters
         ----------
-        data : Points and velocity data.
+        points : points and velocity data.
         """
         self.points = points
         self.tree = KDTree(self.points, leaf_size=2)
 
     def sortPoints(self, refPoint):
+        """
+        sorts the point, beginning with the point nearest to the `refpoint`
+
+        Parameters
+        ----------
+        refpoint : starting point.
+        """
         _, indx = self.tree.query(refPoint, k=2)
         pIndx = indx[0, 0]
         sequence = np.array([], dtype=int)

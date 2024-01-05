@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 """
-Description, ToDo
+handels the csv read and write process
 """
 
 
@@ -14,6 +14,13 @@ class CSVHandler:
         pass
 
     def loadCSV_Points(self, path):
+        """
+        Load points from a csv file.
+
+        Parameters
+        ----------
+        path : path to the .csv file.
+        """
         points = np.loadtxt(
             path,
             delimiter=",",
@@ -22,6 +29,13 @@ class CSVHandler:
         return points
 
     def saveData_2CSV(self, data, path):
+        """
+        writes data points into a csv file.
+
+        Parameters
+        ----------
+        path : path to the .csv file.
+        """
         assert data.ndim == 2
         assert data[0].shape[0] == 3
         x_data = data[:, 0].round().astype(int)

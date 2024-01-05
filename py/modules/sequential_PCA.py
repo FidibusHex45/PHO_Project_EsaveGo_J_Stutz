@@ -3,12 +3,20 @@ import shapely
 from sklearn.decomposition import PCA
 
 """
-Description, ToDo
+Applies sequential PCA on a list of 2d coordinate points
 """
 
 
 class SequentialPCA:
     def __init__(self, points):
+        """
+        Constructor
+        Initalize kd Tree with points.
+
+        Parameters
+        ----------
+        points : coordinate points.
+        """
         self.points = points
         self.pcaS = np.zeros((self.points.shape[0], self.points.shape[1]))
         self.pcaS_diff = np.array([])
@@ -16,7 +24,7 @@ class SequentialPCA:
 
     def seqPCA(self, nPCA, nAvg):
         """
-        Perform sequential pca on a set of 2D points.
+        Perform sequential pca on a set of 2d points.
 
         Parameters
         ----------

@@ -4,7 +4,7 @@ from matplotlib.widgets import TextBox, Button
 from matplotlib.patches import FancyBboxPatch
 
 """
-Description, ToDo
+Edit the velocity of specific points and rotate them in one direction by userinput (GUI)
 """
 
 
@@ -36,6 +36,9 @@ class VelocityEditor:
         self.rotB = 0
 
     def adjust(self):
+        """
+        Start GUI for editing.
+        """
         self.__initPlotBase()
         self.__initPlotWidgets()
         self.__initPlotTxt()
