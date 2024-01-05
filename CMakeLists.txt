@@ -26,7 +26,6 @@ add_executable(
     src/csv_handler.cpp
     src/car_controller.cpp
     src/KDTree.cpp
-    src/keystate.cpp
     )
 
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} uEye-SDK nlohmann_json::nlohmann_json ${PYTHON_LIBRARIES})
