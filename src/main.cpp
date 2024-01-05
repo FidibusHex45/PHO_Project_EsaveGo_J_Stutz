@@ -14,23 +14,23 @@
 #include "mem_handler.hpp"
 #include "serialSTM32.hpp"
 
-HIDS hCam;
+HIDS hCam = 0;
 
 int main(int argc, char *argv[]) {
-    std::string configPathDetectTrack = "../../prop/cameraSettingsTrackDetection.json";
-    std::string configPathCarController = "../../prop/cameraSettings.json";
+    std::string CameraConfigPath = "../../prop/cameraSettings.json";
     std::string save_path = "../../data/datapoints.csv";
     std::string load_path = "../../data/splineData.csv";
     trackData track_data;
-
+    system("cls");
     try {
         auto ser = SerialSTM32("COM5", CBR_115200);
         auto cam = Camera();
-        cam.ConfigureCam(configPathDetectTrack);
-        auto mem = MemHandler(&hCam, 60);
-        auto tdet = Trackdetector(&mem, &cam, &ser, configPathDetectTrack);
-        track_data = tdet.detectTrack(load_path, save_path);
-        auto contr = CarController(&mem, &cam, &ser, track_data, configPathCarController);
+        cam.ConfigureCam(CameraConfigPath);
+        auto mem = MemHandler(&hCam, 100);
+        mem.allocRingBuffer();
+        auto tdet = TrackHandler(&mem, &cam, &ser);
+        track_data = tdet.getTrackData(load_path, save_path);
+        auto contr = CarController(&mem, &cam, &ser, track_data);
         contr.run();
     } catch (std::exception &ex) {
         std::cout << "Error: " << ex.what() << std::endl;

@@ -81,7 +81,8 @@
         "numeric": "cpp",
         "valarray": "cpp",
         "coroutine": "cpp",
-        "typeindex": "cpp"
+        "typeindex": "cpp",
+        "codecvt": "cpp"
     },
     "stm32-for-vscode.openOCDPath": false,
     "stm32-for-vscode.makePath": false,

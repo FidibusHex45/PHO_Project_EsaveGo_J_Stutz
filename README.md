@@ -147,6 +147,125 @@ Example:
     }
 ~~~
 
+~~~mermaid
+---
+title: C++
+---
+classDiagram
+  Camera ..> MemHandler
+  Camera ..> TrackHandler
+  Camera ..> CarController
+  MemHandler ..> TrackHandler
+  MemHandler ..> CarController
+  CSVHandler ..> TrackHandler
+  CSVHandler ..> CarController
+  SerialSTM32 ..> TrackHandler
+  SerialSTM32 ..> CarController
+  class Camera {
+    +configureCam(string)
+    +startAqusition(int)
+    +getFPS()
+    +getImageFormat()
+    +getColorMode()
+    +getAvailableFormats()
+    +stopAquisition()
+  }
+  class MemHandler {
+    +allocRingBuffer()
+    +allocSingleBuffer()
+    +getOpenCVMatRingImg()
+    +getOpenCVMatSingeImg()
+    +drawFpsOnImg(Mat)
+    +drawDroppedFramesOnImg(Mat)
+    +drawTimeStamp(Mat)
+    +saveSingleImg(string, optional~Mat~)
+    +getActiveBufferID()
+    +getRealFps()
+    +getTimeStamp()
+    +int activeBufferIdx
+    +int imgWidth
+    +int imgHeight
+  }
+  class TrackHandler {
+    +getTrackData(string, string)
+  }
+  class CSVHandler {
+    +save2csv(string, vector~Point~)
+    +loadSplineData(string, int, int)
+    +loadSplineDataConfig(string)
+    +saveSplineData(string, vector~splineData_proc~)
+  }
+  class SerialSTM32 {
+    +writeSerialPort(int)
+    +closeSerialPort()
+    +bool connected_
+  }
+  class CarController {
+    +run()
+  }
+~~~
+
+~~~mermaid
+classDiagram
+  CarreraTrackAnalysisApp <.. CSVHAndler
+  CarreraTrackAnalysisApp <.. PointSorter
+  CarreraTrackAnalysisApp <.. SequentialPCA
+  CarreraTrackAnalysisApp <.. SplineInterpolation
+  CarreraTrackAnalysisApp <.. VelocityEditor
+  class CSVHAndler {
+    +__init__(self)
+    +loadCSV_Points(self, path)
+    +saveData_2CSV(self, data, path)
+  }
+  class PointSorter {
+    +__init__(self, points)
+    +sortPoints(self, refPoint)
+    +points
+    +tree
+  }
+  class SequentialPCA {
+    +__init__(self, points)
+    +seqPCA(self, nPCA, nAvg)
+    +points
+    +pcaS
+    +pcaS_diff
+    +pcaS_diff_avg
+  }
+  class SplineInterpolation {
+    +__init__(self, points, numKnots, smoothing, periodic, derivative)
+    +interpolate(self)
+    +points
+    +numKnots
+    +smoothing
+    +periodic
+    +derivative
+    +bInt_SplinePoints
+  }
+  class VelocityEditor {
+    +__init__(self, data, color_scheme)
+    +adjust(self)
+    +x_data
+    +y_data
+    +v_data
+    +cmap
+    +color_original
+    +color_adjust
+    +points
+    +v_adjust
+    +indices_picked_points
+    +rotB
+  }
+  class CarreraTrackAnalysisApp {
+    +__init__(self, path_load, path_write, ref_point)
+    +run(self)
+    +path_write
+    +path_load
+    +ref_point
+    +csvHandler
+  }
+
+~~~
+
 
 
 

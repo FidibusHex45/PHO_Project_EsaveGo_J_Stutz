@@ -16,11 +16,12 @@ class Camera {
     Camera();
     ~Camera();
     void ConfigureCam(std::string path2Settings);
-    void SetCaptureMode(int capMode);
+    void startAqusition(int capMode);
     double getFPS();
     int getImageFormat();
     int getColorMode();
     void getAvailableFormats();
+    void stopAqusition();
 
    private:
     void ReadJsonConfig(std::string path2Settings);

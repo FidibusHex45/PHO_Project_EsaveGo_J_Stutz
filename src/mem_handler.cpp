@@ -141,7 +141,7 @@ char *MemHandler::getLatestImgRingPointer() {
     }
     // std::cout << activeBufferIdx << std::endl;
     hanldeDroppedFrames(lastPointerPos);
-    handleTimeStamp(activeBufferIdx);
+    handleTimeStamp();
 
     // lock buffer for processing
     m_Ret = is_LockSeqBuf(*hCam, m_nSeqNumId[activeBufferIdx], m_pcSeqImgMem[activeBufferIdx]);
@@ -218,7 +218,7 @@ void MemHandler::hanldeDroppedFrames(int lastPointerPos) {
     }
 }
 
-void MemHandler::handleTimeStamp(int activeBufferIdx) {
+void MemHandler::handleTimeStamp() {
     UEYEIMAGEINFO imageInfo;
     m_Ret = is_GetImageInfo(*hCam, m_nSeqNumId[activeBufferIdx], &imageInfo, sizeof(imageInfo));
     if (m_Ret == IS_SUCCESS) {
@@ -233,6 +233,17 @@ void MemHandler::handleTimeStamp(int activeBufferIdx) {
                   << ":" << imageInfo.TimestampSystem.wSecond
                   << ":" << imageInfo.TimestampSystem.wMilliseconds;
     }
+}
+
+std::pair<WORD, WORD> MemHandler::getTimeStamp() {
+    UEYEIMAGEINFO imageInfo;
+    std::pair<WORD, WORD> time;
+    m_Ret = is_GetImageInfo(*hCam, m_nSeqNumId[activeBufferIdx], &imageInfo, sizeof(imageInfo));
+    if (m_Ret == IS_SUCCESS) {
+        time.first = imageInfo.TimestampSystem.wSecond;
+        time.second = imageInfo.TimestampSystem.wMilliseconds;
+    }
+    return time;
 }
 
 void MemHandler::setCVMatformat() {

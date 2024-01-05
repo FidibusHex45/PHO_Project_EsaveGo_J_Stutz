@@ -9,7 +9,6 @@ Camera::Camera() {
     }
     nRet = is_GetCameraInfo(hCam, &camInfo);
     nRet = is_GetSensorInfo(hCam, &sensorInfo);
-    std::cout << "Connecting to camera successfull!" << std::endl;
     PrintCamInfo();
     PrintSensorInfo();
 }
@@ -42,13 +41,13 @@ void Camera::ConfigureCam(std::string path2Settings) {
     printCameraConfig();
 }
 
-void Camera::SetCaptureMode(int capMode) {
+void Camera::startAqusition(int capMode) {
     if (capMode == CONTINOUS_FREERUN) {
         nRet = is_CaptureVideo(hCam, IS_WAIT);
-        std::cout << "Continous freerun capture mode set: " << nRet << std::endl;
+        printError("Continous Image aquisition start:", "\t");
     } else if (capMode == SINGLE_FREERUN) {
         nRet = is_FreezeVideo(hCam, IS_WAIT);
-        std::cout << "Single frame capture mode set: " << nRet << std::endl;
+        printError("Freeze Image aquisition start:", "\t");
     } else {
         throw std::runtime_error("Unknown capture mode!");
     }
@@ -264,6 +263,11 @@ void Camera::getAvailableFormats() {
         std::cout << "-----------------------------------------------------------"
                   << std::endl;
     }
+}
+
+void Camera::stopAqusition() {
+    nRet = is_StopLiveVideo(hCam, IS_WAIT);
+    printError("Continous image aquisition stopp:", "\t");
 }
 
 void Camera::fetchCameraConfig() {

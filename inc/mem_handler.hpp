@@ -5,6 +5,7 @@
 #include <uEye.h>
 #include <uEye_tools.h>
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <opencv2/highgui.hpp>
@@ -30,6 +31,9 @@ class MemHandler {
     void saveSingleImg(std::string path2file, const std::optional<cv::Mat> &mat = std::nullopt);
 
     int getActiveBufferID();
+    double getRealFps();
+    std::pair<WORD, WORD> getTimeStamp();
+
     int activeBufferIdx = 0;
 
     int imgWidth = 0;
@@ -41,9 +45,8 @@ class MemHandler {
     void unlockImgRingMem();
     void freeImgMem();
     void hanldeDroppedFrames(int hanldeDroppedFrames);
-    void handleTimeStamp(int activeBufferIdx);
+    void handleTimeStamp();
     int getDropedFramesSum();
-    double getRealFps();
 
     void setCVMatformat();
 

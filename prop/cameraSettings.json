@@ -2,17 +2,23 @@
   "manual": {
     "imageFormat": 36,
     "colorMode": 6,
-    "exposureTime": 20.0,
+    "exposureTime": 5.0,
     "shutterMode": 2,
-    "pixelCock": 237,
-    "fps": 30,
+    "pixelCock": 474,
+    "fps": 60,
     "offset": 0,
-    "gain": 5,
+    "gain": 3,
     "gamma": 160,
     "binning": 0,
     "enableRoi": 1,
+    "roi1": {
+      "x": 608,
+      "y": 44,
+      "width": 992,
+      "height": 2000
+    },
     "roi": {
-      "x": 780,
+      "x": 660,
       "y": 0,
       "width": 992,
       "height": 2000

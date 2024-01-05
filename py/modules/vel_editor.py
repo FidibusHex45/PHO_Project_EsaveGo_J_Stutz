@@ -323,12 +323,14 @@ class VelocityEditor:
 
     def __updateRotationB(self):
         localColors = np.zeros_like(self.plotProp._facecolors[:])
+        localVelocity = np.zeros_like(self.v_adjust)
         for i in range(localColors.shape[0]):
             idx = (i - self.rotB) % localColors.shape[0]
             localColors[idx] = self.plotProp._facecolors[i]
-            self.v_adjust[i] = self.v_data[idx]
+            localVelocity[idx] = self.v_adjust[i]
         self.plotProp._facecolors[:] = localColors
         self.plotProp._edgecolors[:] = localColors
+        self.v_adjust[:] = localVelocity
         self.fig.canvas.draw()
 
 

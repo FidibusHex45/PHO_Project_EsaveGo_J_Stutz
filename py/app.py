@@ -21,14 +21,20 @@ from modules.spline_interpolation import SplineInterpolation
 from modules.csv_handler import CSVHandler
 
 
+# The CarreraTrackAnalysisApp class is used for analyzing data related to a carrera track.
 class CarreraTrackAnalysisApp:
-    def __init__(self, path_load, path_write, refPoint):
+    def __init__(self, path_load, path_write, ref_point):
         self.path_write = path_write
-        self.refPoint = refPoint
+        self.refPoint = ref_point
         self.path_load = path_load
         self.csvHandler = CSVHandler()
 
     def run(self):
+        """
+        The function loads points from a CSV file, sorts them, performs spline interpolation,
+        applies sequential PCA, adjusts velocity data,
+        and saves the adjusted data to a new CSV file.
+        """
         points = self.csvHandler.loadCSV_Points(self.path_load)
         uniquePoints = np.unique(points, axis=0)
 
@@ -50,9 +56,10 @@ class CarreraTrackAnalysisApp:
 
 
 if __name__ == "__main__":
-    path_load = "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/data/dataPoints.csv"
-    path_write = "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/data/splineData.csv"
-    refPoint = np.array([[564, 1026]])
+    in_path = "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/data/dataPoints.csv"
+    out_path = "C:/Users/joshu/OneDrive/Dokumente/FhGr/Faecher/Labor/5. Semester/Software/PHO_Project_EsaveGo_J_Stutz/data/splineData.csv"
+    # refPoint = np.array([[564, 1026]]) # Outer Track
+    refPoint = np.array([[580, 1145]])  # Inner Track
 
-    app = CarreraTrackAnalysisApp(path_load, path_write, refPoint)
+    app = CarreraTrackAnalysisApp(in_path, out_path, refPoint)
     app.run()
